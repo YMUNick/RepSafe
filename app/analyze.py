@@ -33,11 +33,18 @@ _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="analyze")
 
 # Code-side injection guard: a buyer who writes to "the checker" is a red flag whatever Gemini says.
 INJECTION_RE = re.compile(
-    r"(?i)ignore (all |any |the )?(previous|prior|above|earlier) (instructions|prompts?|rules)"
+    r"(?i)ignore\s+(?:\w+\s+){0,3}(instructions|prompts?|rules)"  # BUG-003: "ignore your previous / all ..."
     r"|disregard .{0,30}(instructions|rules)|system prompt|you are now|as an ai"
     r"|(mark|classify|label|judge|rate) (this|it|me) as (safe|normal|legit|not (a )?scam)"
+    r"|(note|message|instructions?) (for|to) (the )?(ai|assistant|checker|reviewer|bot|model)\b"
+    r"|output no (red )?flags"
     r"|忽略.{0,8}(指示|指令|規則|提示)|(判定|判斷|標記|視)為.{0,3}(正常|安全|非詐騙)|系統提示"
+    r"|(不要|別|不用)(理會|理|管).{0,6}(指示|指令|規則|提示)"
+    r"|[【\[]\s*系統(訊息|通知|提示)\s*[】\]]|(回覆|判定|顯示|輸出)(為|成)?(無風險|沒有風險|零風險)"
 )
+# F7 / BUG-007: a quote must be long enough to point at a real sentence ("a" is in almost any message).
+MIN_QUOTE_CHARS, MIN_QUOTE_CHARS_CJK = 4, 2
+_CJK = re.compile(r"[぀-ヿ㐀-鿿가-힯]")
 _SENTENCE = re.compile(r"[^\n。！？!?]+[。！？!?]?")
 
 
@@ -95,7 +102,8 @@ def validate_judge(data: dict, text: str) -> tuple[dict, int]:
         if not (isinstance(f, dict) and isinstance(f.get("quote"), str) and isinstance(f.get("reason"), str)):
             raise ValueError("red_flags item")
         q = _norm(f["quote"])
-        if q and q in haystack:
+        min_len = MIN_QUOTE_CHARS_CJK if _CJK.search(q) else MIN_QUOTE_CHARS
+        if len(q) >= min_len and q in haystack:
             kept.append(dict(quote=f["quote"].strip(), reason=f["reason"].strip(), code=data["scam_type"],
                              tool="gemini"))
         else:

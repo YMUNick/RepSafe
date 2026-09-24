@@ -103,6 +103,7 @@ Project docs are written in Traditional Chinese, except the pitch material and t
 | `docs/prd.md` | 產品需求：定位、MVP 做／不做、判定卡三態、驗收門檻、demo 劇本、工時配置 | Paula |
 | `docs/roadmap.md` | 9/24–10/11 時程、停損點、老闆必做事項 | Paula |
 | `docs/meetings/2026-09-24-電商客服反詐騙.md` | 立案會議紀錄與會後拍板 | — |
+| `docs/meetings/2026-09-24-剩餘工作盤點.md` | 剩餘工作盤點：完成度約六成、凍結規則、最終時程、各角色待辦、待老闆決定的兩個門檻 | — |
 | `docs/engineering/architecture.md` | 架構、模組、判定三態規則、安全設計、工時重估、部署設定、待決定事項 | Eddie |
 | `docs/engineering/deploy.md` | Cloud Run 部署紀錄：專案、網址、設定、重新部署指令、切換真 Gemini 步驟 | Eddie |
 | `docs/design/ui-spec.md` | 手機單畫面規格：版面、色彩與字體 token、輸入區（含截圖預覽）、四步驟標籤、判定卡三態、英文 UI 文案定稿、各狀態、API JSON 欄位對照 | Dana |

@@ -8,6 +8,9 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
+import time
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -26,7 +29,45 @@ settings = get_settings()
 reputation = make_reputation(settings)
 limiter = RateLimiter(settings.global_rate_limit_per_hour)
 
-app = FastAPI(title="RepSafe", docs_url="/api/docs", openapi_url="/api/openapi.json")
+def warm_up() -> dict:
+    """BUG-008: build the Gemini and Web Risk clients (SDK imports, credentials) before the first request, so a
+    cold start does not spend the Web Risk / Gemini time budget on setup. No model call, no lookup, no cost.
+    Runs in a background daemon thread started by lifespan, so startup and GET / never wait for it. A failure
+    is logged, never fatal: the request path builds the client again (under the same lock, so no race) and
+    falls back to grey as before."""
+    status = {}
+    jobs = []
+    if not settings.offline:
+        from app.gemini import _get_client
+        jobs.append(("gemini", lambda: _get_client(settings)))
+    if hasattr(reputation, "_get_client"):
+        jobs.append(("url_reputation", reputation._get_client))
+    for name, job in jobs:
+        t0 = time.monotonic()
+        try:
+            job()
+            status[name] = "ready"
+        except Exception as e:  # noqa: BLE001 - never block startup
+            status[name] = f"error:{type(e).__name__}"
+        log.info('{"event": "warm_up", "client": "%s", "status": "%s", "ms": %d}',
+                 name, status[name], (time.monotonic() - t0) * 1000)
+    return status
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    threading.Thread(target=_warm_up_safe, name="warm_up", daemon=True).start()
+    yield
+
+
+def _warm_up_safe() -> None:
+    try:
+        warm_up()
+    except Exception as e:  # noqa: BLE001 - background thread, log only
+        log.warning('{"event": "warm_up", "status": "error:%s"}', type(e).__name__)
+
+
+app = FastAPI(title="RepSafe", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan)
 if settings.offline:
     log.warning("AGENT_MODE=offline_fixture: keyword rules instead of Gemini. Never demo or evaluate with this.")
 

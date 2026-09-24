@@ -80,3 +80,73 @@ def test_image_type_and_size_checked():
         decode_image(base64.b64encode(b"x" * 5000).decode(), "image/png", S)
     with pytest.raises(ScreenshotError):
         decode_image("not base64!!", "image/png", S)
+
+
+def test_slow_warm_up_does_not_block_startup(monkeypatch):
+    """BUG-008: warm_up runs in a background thread; startup and GET / answer at once even if it takes 17 s."""
+    import threading
+    import time
+
+    import app.main as main
+
+    release = threading.Event()
+    started = threading.Event()
+
+    def slow_warm_up():
+        started.set()
+        release.wait(5)  # stands in for the ~17 s Web Risk client setup
+        return {}
+
+    monkeypatch.setattr(main, "warm_up", slow_warm_up)
+    t0 = time.monotonic()
+    try:
+        with TestClient(main.app) as c:  # runs lifespan
+            assert c.get("/").status_code == 200
+            assert c.get("/health").status_code == 200
+            assert time.monotonic() - t0 < 2
+            assert started.wait(2)
+    finally:
+        release.set()
+
+
+def test_warm_up_failure_only_logs(monkeypatch):
+    import app.main as main
+
+    def boom():
+        raise RuntimeError("x")
+
+    monkeypatch.setattr(main, "warm_up", boom)
+    main._warm_up_safe()  # must not raise
+
+
+def test_webrisk_client_built_once_under_race(monkeypatch):
+    """Background warm_up and a request thread calling _get_client together build exactly one client."""
+    import sys
+    import threading
+    import time
+    import types
+
+    from app.tools.url_reputation import WebRiskReputation
+
+    built = []
+
+    class FakeClient:
+        def __init__(self):
+            time.sleep(0.05)
+            built.append(self)
+
+    fake = types.SimpleNamespace(WebRiskServiceClient=FakeClient,
+                                 ThreatType=types.SimpleNamespace(MALWARE=1, SOCIAL_ENGINEERING=2, UNWANTED_SOFTWARE=3))
+    cloud = types.ModuleType("google.cloud")
+    cloud.webrisk_v1 = fake
+    monkeypatch.setitem(sys.modules, "google.cloud", cloud)
+    monkeypatch.setitem(sys.modules, "google.cloud.webrisk_v1", fake)
+
+    rep = WebRiskReputation(timeout_s=1)
+    results = []
+    threads = [threading.Thread(target=lambda: results.append(rep._get_client())) for _ in range(8)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(built) == 1 and all(r is built[0] for r in results) and rep._types == [1, 2, 3]

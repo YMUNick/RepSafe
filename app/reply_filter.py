@@ -24,11 +24,35 @@ _CONTACT = re.compile(
 _DIGITS = re.compile(r"(?<!\d)(?:\d[\s\-.]?){5,}\d(?!\d)")  # 6+ digits, spaces/dashes allowed between
 _XN = re.compile(r"(?i)\bxn--[a-z0-9\-]+(?:\.[a-z0-9\-]+)*")
 _SPACES = re.compile(r"[ \t]{2,}")
+_LINKY = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:/.-_@?=&%#~+")
+
+
+def _fw(ch: str) -> str:
+    """Full-width ASCII (U+FF01-FF5E) -> ASCII; "。" / "｡" -> "." (browsers read them as a dot in hosts)."""
+    if "！" <= ch <= "～":
+        return chr(ord(ch) - 0xFEE0)
+    return "." if ch in "。｡" else ch
+
+
+def _fold(text: str) -> str:
+    """BUG-006: write full-width links in ASCII so the filters below can see them. Full-width letters and digits
+    always fold (a reply never needs them); full-width punctuation only between link characters, so Chinese
+    "，" / "：" / "。" in normal sentences stay as written."""
+    out: list[str] = []
+    for i, ch in enumerate(text):
+        a = _fw(ch)
+        if a != ch and not a.isalnum():
+            nxt = _fw(text[i + 1]) if i + 1 < len(text) else ""
+            if not (out and out[-1] in _LINKY and nxt in _LINKY):
+                a = ch
+        out.append(a)
+    return "".join(out)
 
 
 def _secrets_from(text: str) -> set[str]:
     """Links, hosts, emails, handles and long numbers the buyer wrote. Matched literally in the reply."""
     out: set[str] = set()
+    text = _fold(text)
     for raw in extract_urls(text):
         info = check_url(raw)
         out.update({raw, info.host, info.host_ascii})
@@ -56,7 +80,7 @@ def filter_reply(reply: str, original_text: str = "") -> tuple[str, int]:
         count += n
         return s
 
-    out = reply or ""
+    out = _fold(reply or "")
     for secret in sorted(_secrets_from(original_text), key=len, reverse=True):
         rx = re.compile(re.escape(secret), re.IGNORECASE)
         out = sub(rx, out)
@@ -64,7 +88,10 @@ def filter_reply(reply: str, original_text: str = "") -> tuple[str, int]:
     out = sub(_EMAIL, out)
     for raw in extract_urls(out):
         if raw != REMOVED:
-            out = sub(re.compile(re.escape(raw)), out)
+            # the host too: extract_urls works on NFKC text, so "x.sbs/pay，謝謝" comes back as "x.sbs/pay,謝謝"
+            info = check_url(raw)
+            for s in sorted({raw, info.host, info.host_ascii} - {""}, key=len, reverse=True):
+                out = sub(re.compile(re.escape(s), re.IGNORECASE), out)
     for rx in (_XN, _HANDLE, _ID_VALUE, _DIGITS):
         out = sub(rx, out)
     out = _SPACES.sub(" ", out).strip()

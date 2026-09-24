@@ -6,6 +6,7 @@
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`（Pitch 三句、差異化、商業模式）、`docs/prd.md`（第 2、6、10 節）、`docs/design/storyboard.md`（分鏡與旁白）、`docs/design/ui-spec.md`（文案紅線、第 4 節說法統一）
 - 搭配：`docs/sales/data-sources.md`（所有數字的來源）、`docs/sales/seller-outreach.md`（賣家原話與願付價格）
 - **分工**：3 分鐘**影片**的旁白以 Dana 的 `storyboard.md` 為準（她的旁白是定稿）。這份是**真人上台版**（決賽 12/4、或任何要真人講 3 分鐘的場合），段落與時間碼和分鏡一格一格對齊，畫面就是分鏡那一套（現場 demo 或播影片）。兩份不一致的地方列在第 4 節，由 Dana 決定影片要不要跟著改。
+- 2026-09-25 更新（依 `docs/meetings/2026-09-24-剩餘工作盤點.md`）：新增第 7 節「定價區間」（數字全部待估算，10/2–10/3 填）與第 8 節「評審 FAQ 草稿」。格①跟著分鏡改：開場已定新加坡、不放 SPF 數字，改放有書面同意的匿名賣家引言（見格①下方註記）。
 - 語速：每秒約 2.5 個英文字（和分鏡一樣），3 分鐘上限約 450 字；本稿約 400 字，留時間給畫面切換。
 
 ## 標記說明（不要唸出來）
@@ -53,6 +54,7 @@
 
 > Small sellers on Carousell and Shopee get messages like this. A "buyer" sends a link to "verify" your account before they pay. `[待驗證 S1：Singapore Police recorded {N} e-commerce scam cases in {year}.]` And once the chat moves to WhatsApp, LINE or Facebook, the platform's scam warnings can't follow.
 
+- **2026-09-25 起**：影片格①已拿掉警方數字（`storyboard.md` 格①）。真人版也照做：警方那句先不講，改成 `One seller told us: "[賣家原話英文翻譯]."`（`[待訪談]`，要有書面授權 B＋C，見 `seller-outreach.md` 第 7.2 節）；沒有真實引言就整句不講，**不在真人版唸情境改寫句冒充原話**。
 - S1 找不到：刪掉警方那句（`data-sources.md` 第 4 節），其他照講。
 - S2 找到的話（警方有針對「假買家對賣家」的警示），用它換掉 S1 那句，更貼題：`Police have warned sellers about exactly this.`（依原文調整）。
 
@@ -116,7 +118,7 @@
 | 「誰付錢？」 | Free for individual sellers. Longer term, marketplaces and payment providers license it as an API. Right now we're only validating whether sellers would pay a small monthly fee `[待訪談]`. | 個人賣家免費；長期把 API 授權給開店平台與金流商。現階段只驗證賣家願不願每月付一點小錢。 |
 | 「為什麼不賣給銀行？」 | Bank sales cycles and compliance are too heavy for a team our size today. Marketplaces and payment providers feel this pain first. | 銀行的銷售週期和合規成本，以我們現在的規模扛不起；最先痛的是開店平台和金流商。 |
 
-「誰付錢？」那一題：訪談若有數字，只講「幾位裡有幾位願付」這種事實，**不講價格**（樣本太小，`seller-outreach.md` 第 7.3 節）。
+「誰付錢？」那一題：訪談若有數字，只講「幾位裡有幾位願付」這種事實；價格只能照第 7 節、兩項輸入都到齊後以**區間**講，不講單一價格（樣本太小，`seller-outreach.md` 第 7.3 節）。
 
 ## 4. 和分鏡旁白的差異（給 Dana 決定）
 
@@ -133,7 +135,7 @@
 - 不把 "safe" 當判定講；"safe reply" 指的是回覆本身可以用。
 - 不說 "guaranteed"、"100% accurate"、"catches every scam"。
 - 不說 "function calling"；統一說 "tools enforced by code"。
-- 沒有來源的數字不講；賣家原話沒有引用授權不講；價格不講。
+- 沒有來源的數字不講；賣家原話沒有引用授權不講；價格只在第 7 節區間定案後、於 Q&A 或真人版講，影片不放價格。
 - 不說「賣給銀行」（會議已收回這個講法）。
 - 畫面上不放平台 logo；口頭可以講平台名稱。
 
@@ -145,3 +147,56 @@
 - [ ] 計時完整跑三次，每次 ≤ 3:00；超時先砍格 ⑥ 商業模式句。
 - [ ] 現場 demo 前打一次 `/health` 暖機；頁首沒有 `Offline test mode` 提示條。
 - [ ] 第 3 節的競品回應，對照 S9 官網說法確認過一次。
+- [ ] 第 7 節定價區間兩項輸入都到齊才講；任一項待估算，就用第 7.4 節的「還在驗證」講法。
+- [ ] 第 8 節 FAQ 所有 `{…}`、`[待訪談]`、`[待驗證]` 都已填好或換成備用答案。
+
+## 7. 定價區間（預留，數字全部待估算）
+
+- 時程：Felix **10/1** 交單次分析成本下限（`docs/finance/budget.md`）→ Sandy **10/2** 寫區間 → **10/3** 定稿給 Dana 對語氣。
+- 用途：只用在真人版 Q&A 和本文件第 8 節「誰付錢」類題目；**影片不放價格**。
+- 商業模式不變：個人賣家有免費版；長期是平台與金流商的 API 授權。這裡的區間只回答「如果個人賣家要付費，大概落在哪」。
+
+### 7.1 兩項輸入
+
+| # | 輸入 | 來源 | 誰給 | 期限 | 目前 |
+|---|---|---|---|---|---|
+| 1 | 單次分析成本下限（含截圖讀字的那一次呼叫另算） | 33 則評測紀錄的 token 數，取平均與最大值 | Felix | 10/1 | 待估算 |
+| 2 | 每月願付（願意試的界線、直接拒絕的界線） | 訪談匿名彙總（`seller-outreach.md` 第 7.3 節） | Sandy | 9/30 | 待訪談 |
+| 輔 | 每位賣家每月大約會檢查幾次 | 訪談「最近一個月被找上次數」 | Sandy | 9/30 | 待訪談 |
+
+### 7.2 怎麼算（方法先定，數字之後填）
+
+- **下限（成本面）**＝單次成本下限 ×每月檢查次數 ×（1＋緩衝）。緩衝比例由 Felix 定，待估算。
+- **上限（客戶面）**＝受訪者「願意試的界線」，照原幣分開列（SGD、TWD 不互相換算）。
+- 下限 ≤ 上限：區間成立，寫成「每月 {下限}–{上限} {幣別}」。
+- 下限 > 上限，或願付的人少於一半：**個人付費不成立**，Q&A 只講「個人免費、平台與金流商授權」，不硬給價格。
+
+### 7.3 區間表（10/2 填）
+
+| 市場 | 成本下限／月 | 願意試的界線 | 直接拒絕的界線 | 區間 | 樣本 |
+|---|---|---|---|---|---|
+| 新加坡（SGD） | 待估算 | 待訪談 | 待訪談 | 待估算 | ___ 位 |
+| 台灣（TWD） | 待估算 | 待訪談 | 待訪談 | 待估算 | ___ 位 |
+
+### 7.4 講法（English，Q&A 用）
+
+- 區間成立時：`Individual sellers get a free tier. In interviews, {M} of {N} sellers said they'd try a paid plan at around {range} a month, and that's above our cost per check. Small sample, so we treat it as a direction, not a price.`
+- 還在驗證（任一輸入待估算，或區間不成立）：`Individual sellers get a free tier. We're still validating whether sellers would pay a small monthly fee; the longer-term model is licensing to marketplaces and payment providers.`
+
+## 8. 評審 FAQ 草稿（10/3 定稿）
+
+規則：答案**不能編造數字**。`{x}` 類只能填 Quinn 最後一次評測結果檔；`[待訪談]` 只能填匿名彙總；`[待驗證 S#]` 照 `data-sources.md`。沒有數字時用「備用答案」。第 3 節已有的競品題不重複。
+
+| # | 評審可能問 | 回答（English） | 數字從哪來／沒有數字時 |
+|---|---|---|---|
+| 1 | How accurate is it? | `On thirty-three messages we wrote before tuning: {x} of 20 scams caught, {y} false alarms on 10 real buyers, {z} of 3 injections blocked. On real seller cases we never tuned on: {k} of {m}. Small sample.` | `docs/qa/test-plan.md` 評測結果檔。沒跑完就說 `We're running the evaluation now`，不給估計值 |
+| 2 | What if it flags a real buyer? | `That's the error we watch most, because a rude reply loses a sale. In our test it happened {y} times out of 10. And for clean messages we never say "safe"; we say no red flags found and keep payment on the platform.` | 同上 `{y}` |
+| 3 | What happens to the chats and screenshots sellers paste in? | `We never open the links, and we don't save the messages. The screenshot preview stays on the seller's device; only the text goes to Gemini for the check.` | 依據 `ui-spec.md` 隱私小字與 `architecture.md` 第 5 節；上線前請 Eddie 確認仍成立 |
+| 4 | What if Gemini or Web Risk is down? | `It shows a grey "Can't determine" card and asks the seller to try again. It never falls back to "no red flags".` | 灰卡備用錄影（`storyboard.md` 格⑤備註）；Quinn 降級實測 |
+| 5 | Can scammers trick the AI itself? | `They try. Messages like "ignore previous instructions" are flagged by an injection guard in code, and the verdict is set by code, not by the message. In our test, {z} of 3 injection attempts were blocked.` | `{z}` 來自評測 |
+| 6 | How much does one check cost you? | `About {cost} per check at current Gemini pricing, measured from our evaluation logs.` | Felix 10/1 的成本下限。沒有時：`We're measuring it from our evaluation logs; it's capped by a fixed budget and an hourly limit.` |
+| 7 | Do sellers actually want this? Would they pay? | `We talked to {N} sellers. {M} had lost money or time to a fake buyer, and {P} said they'd try a paid plan.` 可加一句有授權的原話 | `[待訪談]` 匿名彙總（`data-sources.md` 9/30 更新）。沒有訪談結果時：`We're interviewing sellers now; so far the evidence is the scam scripts themselves.`，不說「很多賣家說」 |
+| 8 | How do you reach sellers? | `Seller groups and communities where these scams are already being shared, then marketplaces and payment providers who want fewer disputes.` | 不需要數字；不講用戶數、下載數等還沒有的數字 |
+
+- 第 1、2、5 題的數字要和影片格⑥字卡**逐字一致**（Quinn 10/5 對）。
+- 第 3 題如果 Eddie 的實作有變（例如開始記訊息內容），這題要改，並通知 Dana 改隱私小字。

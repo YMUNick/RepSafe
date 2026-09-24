@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -21,6 +22,7 @@ log = logging.getLogger("repsafe.gemini")
 
 _pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemini")
 _client = None
+_client_lock = threading.Lock()  # background warm_up and request threads may build it at once
 RETRY_HTTP_CODES = (429, 500, 502, 503, 504)
 
 
@@ -32,7 +34,11 @@ class JudgeError(RuntimeError):
 
 def _get_client(settings: Settings):
     global _client
-    if _client is None:
+    if _client is not None:
+        return _client
+    with _client_lock:
+        if _client is not None:
+            return _client
         from google import genai
         from google.genai import types
 

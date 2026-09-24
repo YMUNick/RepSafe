@@ -11,6 +11,7 @@ The lookup sends the URL *string* to the API. Nothing here requests the URL itse
 from __future__ import annotations
 
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from typing import Protocol
@@ -44,14 +45,19 @@ class WebRiskReputation:
     def __init__(self, timeout_s: float):
         self.timeout_s = timeout_s
         self._client = None
+        self._lock = threading.Lock()  # background warm_up and request threads may build it at once
 
     def _get_client(self):
-        if self._client is None:
+        if self._client is not None:
+            return self._client
+        with self._lock:
+            if self._client is not None:
+                return self._client
             from google.cloud import webrisk_v1
 
-            self._client = webrisk_v1.WebRiskServiceClient()
             self._types = [webrisk_v1.ThreatType.MALWARE, webrisk_v1.ThreatType.SOCIAL_ENGINEERING,
                            webrisk_v1.ThreatType.UNWANTED_SOFTWARE]
+            self._client = webrisk_v1.WebRiskServiceClient()  # set last: _types must exist once _client does
         return self._client
 
     def check(self, lookup_url: str) -> Reputation:

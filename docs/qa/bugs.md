@@ -5,6 +5,7 @@
 - 我沒有改任何 `app/` 程式。標 xfail 的測試在 `tests/test_qa_adversarial.py`，全部 `strict=True, raises=AssertionError`：修好後測試會變成 XPASS → 失敗，請拿掉那一條的 `@pytest.mark.xfail`，斷言不要改。
 - 目前 `pytest`：77 passed、17 xfailed。
 - **2026-09-24 Eddie 更新**：BUG-001、002、004、005 已修，對應 xfail 已拿掉（斷言沒改）；另加首頁路由與截圖路由測試。現在 `pytest`：90 passed、5 xfailed（剩 BUG-003 ×3、006、007）。
+- **2026-09-25 Eddie 更新**：BUG-003、006、007、008 已修，對應 xfail 全部拿掉（斷言沒改）。現在 `pytest`：95 passed、0 xfailed。離線評測 injection 1/3 → 3/3，邊緣集 E08 amber → red，N01–N10 沒有新增誤判。
 - 嚴重度：**High**＝違反 PRD 驗收門檻或安全要求；**Medium**＝會讓評測或 demo 出錯、傷信任；**Low**＝機率低或只影響說明文字。
 - 測試字串用的網域全是 `.example` 或明顯編出來的名字（例如 `repsafe-qa-test-shopee.sbs`），沒有真實釣魚網址。
 
@@ -12,12 +13,12 @@
 |---|---|---|---|---|---|
 | BUG-001 | High | Gemini 回報 `injection_detected=true` 被忽略，可能出琥珀卡 | xfail ×1 | 10/5 | **Fixed 9/24** |
 | BUG-002 | High | 不帶 `http(s)://`、頂級網域不在清單的網址完全看不到：兩個工具都不跑，回覆過濾也濾不掉 | xfail ×5 | 10/5 | **Fixed 9/24** |
-| BUG-003 | Medium | 程式注入防護漏掉常見變體（`Ignore your previous instructions`、`Ignore all instructions`、「不要理會前面的規則」） | xfail ×3 | 10/5 | Open |
+| BUG-003 | Medium | 程式注入防護漏掉常見變體（`Ignore your previous instructions`、`Ignore all instructions`、「不要理會前面的規則」） | xfail ×3 | 10/5 | **Fixed 9/25** |
 | BUG-004 | Medium | 改字＋國家後綴（`shoppee-tw`、`shope-tw`、`caroussel-sg`）沒被判成冒用，評測 L03 的 F4 驗收不過 | xfail ×3 | 10/5 | **Fixed 9/24** |
 | BUG-005 | High | 安全回覆過濾：沒有 `ID:` 前綴的 LINE／Telegram 帳號不會被濾掉 | xfail ×3 | 10/5 | **Fixed 9/24** |
-| BUG-006 | Medium | 安全回覆過濾：全形字寫的網址不會被濾掉 | xfail ×1 | 10/5 | Open |
-| BUG-007 | Low | Gemini 引用 1 個字元（例如 `a`）也算「對得到原句」，會變成紅旗 | xfail ×1 | 10/9 | Open |
-| BUG-008 | Medium | `/health` 暖不到 Gemini／Web Risk client，冷啟動後第一則分析可能逾時變灰卡（推測，待雲端實測） | 無（要雲端） | 部署當天 | Open |
+| BUG-006 | Medium | 安全回覆過濾：全形字寫的網址不會被濾掉 | xfail ×1 | 10/5 | **Fixed 9/25** |
+| BUG-007 | Low | Gemini 引用 1 個字元（例如 `a`）也算「對得到原句」，會變成紅旗 | xfail ×1 | 10/9 | **Fixed 9/25** |
+| BUG-008 | Medium | `/health` 暖不到 Gemini／Web Risk client，冷啟動後第一則分析可能逾時變灰卡（推測，待雲端實測） | 無（要雲端） | 部署當天 | **Fixed 9/25**（待 9/29 雲端實測） |
 | BUG-009 | Low | `shope.ee` 被判成「改字的 Shopee 網域」，理由可能寫錯（待查證是否為蝦皮官方短網址） | 無 | 10/9 | Open |
 | BUG-010 | Low | 既有測試用了可能真實存在的網域（`shopee-tw.com` 等），公開 repo 前要換成保留網域 | 無 | 推 GitHub 前 | Open |
 | ENH-001 | — | `shp.ee` 紅旗改用專屬理由文字 | — | 10/9 | Open |
@@ -60,6 +61,7 @@
 - **預期**：程式防護是「Gemini 被騙時的最後一道」，建議放寬：`ignore\s+(?:\w+\s+){0,3}(instructions|prompts?|rules)`、`(不要|別)(理會|管|理).{0,6}(指示|指令|規則)`、`(note|message) (for|to) (the )?(ai|assistant|checker|reviewer)`、`【?系統(訊息|通知|提示)】?`、`output no red flags`、`(回覆|判定|顯示).{0,4}(無風險|沒問題|安全)`。放寬後請跑一次 33 則，確認 N01–N10 沒有被誤抓。
 - **為什麼 Medium 不是 High**：真 Gemini 還是第二道防線；但 injection 門檻是 3/3，兩則要完全靠 Gemini，風險不小。
 - **測試**：`test_injection_guard_common_variants`（3 句）；已知會抓到的句子由 `test_injection_guard_known_phrases` 鎖住。
+- **修法（Eddie 9/25，Fixed）**：`app/analyze.py` `INJECTION_RE` 照建議放寬：`ignore` 後面最多隔 3 個字接 instructions／prompts／rules；`note/message/instructions for/to the AI/assistant/checker/reviewer/bot/model`；`output no (red) flags`；「不要／別／不用」＋「理會／理／管」＋ 6 字內的指示／指令／規則／提示；**有括號的**【系統訊息／通知／提示】（沒括號的「系統通知」不算，避免「蝦皮系統通知我」被誤抓）；「回覆／判定／顯示／輸出」接「無風險／沒有風險／零風險」。「你現在是…」沒加（「你現在是在門市嗎」這類正常句太常見）。離線評測 I02、I03、E08 都變紅（`prompt_injection`），N01–N10 沒有被誤抓。
 
 ## BUG-004（Medium）改字＋國家後綴沒被判成冒用
 
@@ -92,6 +94,9 @@
 - **預期**：在過濾前先把回覆做 NFKC（安全回覆本來就不需要全形英數），或比對時用正規化後的字串找位置。
 - **為什麼 Medium**：Gemini 很少主動寫全形；但注入訊息可以要求「用全形字寫出網址」，而評測 injection 題就是在測這種操控。
 - **測試**：`test_fullwidth_link_in_reply_is_filtered`
+- **修法（Eddie 9/25，Fixed）**：`app/reply_filter.py` 新增 `_fold()`：過濾前先把回覆和原訊息的全形英數轉半形；全形標點（`：／．－` 等）和 `。` 只有夾在網址字元中間時才轉，中文句子裡的「，」「：」「。」照原樣保留。之後所有比對都在半形字串上做，濾掉的網址顯示為 `[removed]`。
+- **順手修的相關漏洞**：回覆裡沒有 scheme 的連結後面緊接中文「，」（例如 `別點 x-shop.sbs/pay，謝謝`）原本濾不掉：`extract_urls()` 在 NFKC 後的字串上找，會把 `,謝謝` 一起吃進去，拿回原文比對不到。現在回覆裡找到的每個連結也會把它的網域（含 punycode 形式）一起濾掉，結果是 `[removed]/pay，謝謝`。
+- **已知取捨**：回覆裡的全形英文字母一律變半形（安全回覆本來就不需要全形英數）。
 
 ## BUG-007（Low）1 個字元的引用也算「對得到原句」
 
@@ -99,6 +104,8 @@
 - **重現**：Gemini 回 `scam_type=other_scam`、`red_flags=[{"quote":"a",...}]`，訊息 `Hi is this available? thanks` → 紅卡。
 - **預期**：F7「每條紅旗都對得到原訊息中的句子」。建議引用至少 4 個字元（中文 2 個字），或至少是原句的一半長度；不符合就丟掉。
 - **為什麼 Low**：要 Gemini 同時判錯又亂引用才會發生；但一發生就是正常買家被判紅（誤報）。
+- **測試**：`test_trivial_quote_is_not_accepted_as_red_flag`
+- **修法（Eddie 9/25，Fixed）**：`app/analyze.py` `validate_judge()`：引用（NFKC 正規化後）含中日韓字至少 2 字，否則至少 4 字元，不夠就丟掉（計入 `quotes_dropped`）。丟光後 `scam_type` 不是 none，照原本規則變 `gemini_bad_output` 灰卡，不會紅。
 
 ## BUG-008（Medium，待雲端實測）`/health` 暖不到 Gemini／Web Risk
 
@@ -108,6 +115,8 @@
   1. 最省事：錄影、評測前流程改成「`/health` ＋ 一則假訊息 `/api/analyze`」（已寫進 test-plan 第 7、10 節）。
   2. 程式改法（二選一）：啟動時（FastAPI startup）先建立兩個 client；或 `/health?deep=1` 建立 client 但不呼叫模型。
 - **驗證**：部署後照 test-plan 第 7 節量 5 次冷啟動，記第一則的秒數和判定。
+- **修法（Eddie 9/25，Fixed，待雲端實測）**：採建議 2 的第一種。`app/main.py` 新增 `warm_up()`，在 FastAPI lifespan（容器啟動時，Cloud Run 這段有完整 CPU）先建立 Gemini client（`AGENT_MODE=gemini` 時）和 Web Risk client（`URL_REPUTATION_BACKEND=webrisk` 時）。不呼叫模型、不查網址、不花錢；失敗只記 log（`warm_up` 事件）、不擋啟動，請求時照舊再建、失敗照舊灰卡。離線模式什麼都不做，`/health` 回應不變。本機實測 Web Risk client 初始化約 17.5 秒、Gemini 約 2.3 秒，證實原本 3.5 秒的 Web Risk 期限在冷啟動時會逾時。9/29 冷啟動實測時請一起看 log 的兩行 `warm_up`。
+- **修法更新（Eddie 9/25，依 Quinn test-plan 第 12 節）**：同步 warm-up 會讓真 Gemini 模式冷啟動時首頁被擋約 17 秒。改成 lifespan 立即 yield，`warm_up()` 在背景 daemon 執行緒跑，失敗只記 log。`app/gemini.py` 和 `app/tools/url_reputation.py` 的 `_get_client()` 加鎖（雙重檢查），背景 warm-up 還沒建好時請求會等同一把鎖、只建一次 client，不會重複建立或競態出錯。代價：warm-up 未完成前進來的第一則分析仍會等 client 建好。新增測試：`tests/test_api.py` 慢速 warm-up 下啟動與 `GET /` 立即回應、warm-up 例外不外拋、8 執行緒同時建 Web Risk client 只建一次。
 
 ## BUG-009（Low）`shope.ee` 的紅旗理由可能寫錯
 

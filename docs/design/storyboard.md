@@ -4,6 +4,7 @@
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`（影片分鏡共識、分歧 4、會後老闆拍板）、`docs/prd.md` 第 10、11 節
 - 2026-09-24 同步老闆拍板：開場用新加坡／東南亞案例（不採台灣版）；截圖上傳納入 MVP，demo 要展示一次截圖上傳（格 ③）。
 - 搭配：`docs/design/ui-spec.md`（畫面、文案、狀態）；畫面本體是 `app/static/index.html`
+- 2026-09-25 更新（依 `docs/meetings/2026-09-24-剩餘工作盤點.md`）：格①拿掉 SPF 數字，改成不放數字的版本；新增第 5 節「9/28 真輸出驗證清單」、第 6 節「10/5 真機排練計時表」。不做新 UI，灰卡 `Can't determine` 就是「無法驗證」狀態。
 - 這份文件的**英文旁白與字幕是定稿**。要改文字請先改這份文件。
 - 旁白速度抓每秒約 2.5 個英文字，每格的字數都已經控制在該格秒數內講得完。
 - `{…}` 是評測跑完後才會有的數字，**全部待評測**；標「待驗證」的是需要 Sandy 找公開來源的數字。沒有來源的數字不能上片。
@@ -48,15 +49,18 @@
 **畫面**
 - 0:00–0:08：中性聊天示意圖，一則英文訊息跳進來（字卡逐字打出）：
   `Hi, I want to buy this. Before I can pay, you need to verify your account for buyer protection: https://carousell-sg.verify-deal.example/seller`
-- 0:08–0:14：訊息淡出，右側大字卡：新加坡警方公開的電商詐騙數字 `{SPF 數字：待驗證，Sandy 找來源}`，下方小字註明來源與年份。
+- 0:08–0:14：**不放任何數字**（2026-09-24 會議定案：SPF 數字拿掉）。訊息停在畫面上，網址那一段慢慢反白（純畫面，停約 3 秒），右側大字卡預留給「賣家引言」位置，二選一：
+  - **A. 賣家真實引言**（優先）：`"{賣家原話，英文翻譯}" — {匿名稱呼，例如 A seller in Singapore}`。**9/29 晚盤點後由 Sandy 提供**，要有書面同意、只放匿名稱呼；逐字稿留在 `data/private/`，片中只放這一句。
+  - **B. 沒有真實引言時**：用匿名的情境改寫句，例如 `"I almost clicked it. It looked like the app."`，下方小字固定寫 `Scenario reenacted. Not a real quote.`，不能假裝是真人原話。
+  - 兩者都拿不到定稿時，右側留白，只停純畫面。
 - 0:14–0:20：聊天示意圖畫面上，一個箭頭從平台聊天指向另一個通訊軟體圖示（用通用的對話框圖示，不用 WhatsApp／LINE 的 logo）。
 
-**旁白**（約 45 字）
-> In Singapore, second-hand sellers get messages like this every day. A "buyer" sends a link to "verify" your account. {Police figure, source pending.} And once the chat moves off the app, the platform's warnings can't follow.
+**旁白**（約 35 字，不含任何數字）
+> In Singapore, second-hand sellers get messages like this every day. A "buyer" sends a link to "verify" your account. And once the chat moves off the app, the platform's warnings can't follow.
 
 **字幕**：`A "buyer" asks the seller to verify. It's a trap.`
 
-**備註**：警方數字拿不到可信來源時，刪掉那一句，旁白改成 `Scam reports like this are rising across the region.`，而且這句也要有來源，沒有來源就連這句都刪，改成純畫面停 3 秒。
+**備註**：旁白比原版少一句，0:08–0:14 的空檔就是讓引言字卡（或純畫面）停留的時間。這一格**不再放警方或任何統計數字**，也不用 `Scam reports like this are rising…` 這類需要來源的說法。
 
 ---
 
@@ -90,7 +94,7 @@
 
 **備註**
 - 截圖這段的字幕、旁白只能說「讀文字」（reads the text），**不能**說 detect／verify screenshots（ui-spec 第 3 節文案紅線）。
-- 截圖預覽（ui-spec 第 3.1 節，2026-09-24 拍板）只在手機本機顯示，**不是**另外上傳；旁白不用特別講，但畫面上 `Preview stays on this device.` 要錄得清楚。0:28–0:42 這段 14 秒很緊，放大對照只停約 2 秒，排練時如果超時，先砍「收合」動作（直接往下捲到 `Check message`）。
+- 截圖預覽（ui-spec 第 3.1 節，2026-09-24 拍板）只在手機本機顯示，**不是**另外上傳；旁白不用特別講，但畫面上 `Preview stays on this device.` 要錄得清楚。0:28–0:42 這段 14 秒很緊，放大對照只停約 2 秒，排練時如果超時，先砍「收合」動作（直接往下捲到 `Check message`）；完整的逐秒動作和刪減順序見第 6 節。
 - 讀截圖的等待時間同樣照實錄、不剪。錄影前實測：讀出來的網址必須和示意圖上**一字不差**（Gemini 可能把改字網域「修正」回正確網址，這正是畫面上要賣家確認的原因）。如果被改掉了，現場手動改回來再按 `Check message`，不要剪掉這個動作，它剛好示範了確認步驟。
 - 這一格要讓評審看到**兩個工具真的在跑**。字卡寫 "enforced by code"，不要寫 "function calling"（Eddie 的實作決定①，見 `ui-spec.md` 第 4 節）。
 - 步驟逐一亮起是呈現用的節奏（大約 1.1 秒），實際等待時間照實錄，**不剪掉等待時間**。如果等超過 10 秒，剪輯時在右下角放 `Real-time, not sped up` 小字，照實呈現。
@@ -157,7 +161,7 @@ Blind test, real seller cases:   {k} / {m} caught
 
 **畫面**：右側字卡：
 - `Sellers have no fraud team. Scammers know that.`
-- `{新加坡／東南亞 電商詐騙損失數字：待驗證，Sandy 找來源}`（和開場同一個區域，不放台灣數字）
+- `{新加坡／東南亞 電商詐騙損失數字：待驗證，Sandy 找來源}`（和開場同一個區域，不放台灣數字；10/5 前沒有來源就整行刪掉，不留空位）
 - `Works with any chat app. On the seller's side.`
 
 最後 4 秒：白底 `RepSafe`、`Reply safe. Keep your rep.`，下方小字 `Built with Gemini on Google Cloud Run · Google Web Risk API`。
@@ -196,9 +200,82 @@ Blind test, real seller cases:   {k} / {m} caught
 - [ ] 四則 demo 訊息的實際結果和第 3 節一致。
 - [ ] 評測字卡的數字來自最後一次評測結果檔，沒有挑數字。
 - [ ] 所有「待驗證」的數字都有來源，沒有來源的已經刪掉。
+- [ ] 格①沒有任何數字；引言是真實原話（有書面同意、匿名）或標了 `Scenario reenacted. Not a real quote.`。
+- [ ] 第 6 節真機排練連續 3 次在時間內。
 - [ ] 總長 ≤ 3:00。
 
-## 5. 工時
+## 5. 9/28 真輸出驗證清單（Dana，只驗不改版面）
+
+Eddie 9/28 切成 `AGENT_MODE=gemini` 後，同一天在**錄影要用的那支手機**上截三則。離線模式的截圖不算數。
+
+### 5.1 要截哪三則
+
+| # | 狀態 | 用什麼觸發 | 要截的畫面 |
+|---|---|---|---|
+| S1 | 詐騙（紅卡） | 格③的示意圖截圖（Demo-EN，或 9/30 定案的 Demo-TW），走 `Upload screenshot` 完整流程 | ① 讀字完成、提示句出現 ② 紅卡標題＋chip ③ `Red flags` 整段 ④ `Safe reply` 卡 |
+| S2 | 正常（琥珀卡） | 貼上 Demo-Normal | 琥珀卡整張，含固定小字 |
+| S3 | 灰卡 `Can't determine` | 頁面載入後開飛航模式再按 `Check message`（前端「連不到」原因）。後端原因的灰卡（例如權限拿掉後的 `The AI check is unavailable right now.`）等 Quinn 9/30–10/4 降級實測時補截 | 灰卡整張，含原因清單和 `Try again` |
+
+每則同時記下：從按下按鈕到出結果的秒數（S1 另記讀截圖秒數），給第 6 節排練用。
+
+### 5.2 每張截圖要檢查的項目
+
+| 項目 | 標準 | 對照 |
+|---|---|---|
+| 標籤名稱 | 卡片標題、chip、工具標籤跟 `ui-spec.md` 逐字相同，沒有出現 `ui-spec.md` 第 6.3、6.5 節以外的名稱；S1 的 chip 是 `Phishing link` 或 `Fake marketplace domain` | `ui-spec.md` 第 5、6.3、6.5 節 |
+| 文案長度 | 紅旗 `reason` 每條最多 2 行；`Safe reply` 最多 4 行、不必捲動就看得到 `Copy reply`；灰卡原因每條 1 行 | 超過就列進 5.3 清單 |
+| 手機斷行 | 在 375px（最窄）和錄影手機各看一次：chip 不斷成兩行、等寬字長網址在框內換行不溢出、按鈕文字不被切掉、四步驟標籤不擠成兩排 | `ui-spec.md` 第 1、4 節 |
+| 語氣與紅線詞 | 任何地方都不出現當判定用的 `safe`、`guaranteed`、`detect fake screenshots`；琥珀卡沒有被說成「安全」 | 第 0 節鐵則 4 |
+| 讀字正確 | S1 讀出的網址和示意圖上一字不差 | 格③備註 |
+| 顏色 | 灰卡沒有綠色、也不會掉成琥珀卡 | `ui-spec.md` 第 5 節 |
+| 環境 | 頁首沒有 `Offline test mode` 提示條 | 第 0 節鐵則 5 |
+
+### 5.3 9/30 文案問題清單格式（交給 Eddie）
+
+規則：**只改字，不改版面**。不加元素、不改 CSS、不新增狀態；只能靠改版面解決的問題，標「不修，記錄」（照凍結規則當 Low 處理）。新文字不能比原文字長。
+
+| # | 截圖 | 位置 | 現在的字 | 問題 | 改成 | 文字來源 | 誰改 |
+|---|---|---|---|---|---|---|---|
+| 1 | S1-③ | 紅旗第 1 條 `reason` | （照抄） | 太長／斷行／語氣／紅線詞／名稱不符 | （新字） | 固定文案 或 Gemini 輸出 | Eddie |
+
+- **固定文案**（`ui-spec.md` 第 6 節）：Dana 先改 `ui-spec.md`，Eddie 照著逐字改前端。
+- **Gemini 輸出**（`reason`、`Safe reply`）：只能用 prompt 裡的長度或語氣限制處理，而且要在 Quinn 開跑 33 則評測之前改完；評測開跑後只記錄、不改，免得評測結果和影片對不上。
+- 沒有問題的項目不列；清單是空的也要交，寫「9/28 三則全過」。
+
+## 6. 10/5 真機排練計時表（格③ 0:28–0:42，14 秒）
+
+- 用錄影那支手機、正式 Cloud Run（`gemini` 模式，先打 `/health` 暖機）。Dana 操作、Quinn 計時，每一步各跑 3 次，記實際秒數。
+- 旁白這段約 27 字（約 11 秒），動作要在 14 秒內跑完，旁白才不用趕。
+- 同一場 Quinn 帶的 E08 和全形網址，Dana 順便照第 5.2 節看一次斷行。
+
+### 6.1 逐秒動作
+
+| 時間 | 秒數 | 動作 | 畫面上一定要看得到 | 實測（3 次） |
+|---|---|---|---|---|
+| 0:28–0:30 | 2 | 在聊天示意圖上截圖 → 切到 RepSafe | 示意圖上的連結 | |
+| 0:30–0:31.5 | 1.5 | 點 `Upload screenshot` 分頁 → `Choose screenshot` | 分頁切換 | |
+| 0:31.5–0:33 | 1.5 | 從相簿選剛才的截圖（要是相簿第一張） | — | |
+| 0:33–0:37 | 4 | 等讀字：縮圖出現＋ `Reading text from your screenshot…` | `Preview stays on this device.` 至少 1 秒 | |
+| 0:37–0:38 | 1 | 自動切回 `Paste text`，文字填進輸入框 | 提示句 `Text read from your screenshot…` | |
+| 0:38–0:40 | 2 | 點縮圖放大 → 手指停在圖上的連結、再停在輸入框的連結 | 兩個網址一樣 | |
+| 0:40–0:41 | 1 | 點縮圖收合 | — | |
+| 0:41–0:42 | 1 | 點 `Check message` | 按鈕變 `Checking…` | |
+
+讀字的 4 秒是估計值，9/28 用第 5.1 節量到的秒數替換。**讀字等待照實錄，不剪、不加速**。
+
+### 6.2 超時的刪減順序（照順序砍，砍到夠為止）
+
+1. **砍「收合」**：放大對照後直接往下捲到 `Check message`（省約 1 秒）。
+2. **截圖動作移到格②**：截圖在格②片名時先截好，0:28 直接從 RepSafe 點分頁開始（省約 2 秒）。
+3. **放大對照縮短**：只停輸入框的連結 1 秒（省約 1 秒）。確認步驟本身不能砍，那是格③要證明的事。
+4. **向後借時間**：讀字真的比 4 秒久，把格③的 0:42 往後推，從 0:54–1:05 的紅卡停留借，最多借 5 秒（那段旁白只有約 6 字）。總長仍要 ≤ 3:00。
+5. 以上都做了還是超過：改走精簡影片（凍結規則 3），不在這段加速播放。
+
+**不能砍的**：`Preview stays on this device.`、讀字後的確認提示句、真實等待時間。
+
+**通過標準**：連續 3 次在 14 秒內（有用第 4 步借時間的話，以借完後的長度為準），而且三次讀出的網址都一字不差。
+
+## 7. 工時
 
 | 項目 | 估計 |
 |---|---|
