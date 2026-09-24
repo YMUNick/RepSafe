@@ -10,13 +10,14 @@
 - 實作：`app/static/index.html`（單檔靜態頁，純 HTML/CSS/JS，沒有建置步驟、沒有外部請求、沒有 API key）。**要讓它能開，Eddie 要先加第 9 節的掛載程式碼。**
 - 沒有 Figma，這份文件就是設計稿。token、尺寸、文案都寫死在這裡；**英文文案是定稿，要改請先改這份文件，再改 `index.html`**。
 - 只有一套淺色主題（白底），不做深色模式。刻意和 LineSleuth 的深色＋琥珀做出區隔。
+- 2026-09-24 老闆再拍板：**視覺改成電商活潑風**（珊瑚橘品牌色、圓角白卡、柔和陰影、品牌 header＋inline SVG 盾牌對話泡泡 logo），並加 **Try a sample 範例按鈕**（第 3.2 節）。判定三態語意色不變。以下第 0 原則 4、第 2 節顏色規則已同步：主按鈕與步驟完成改用品牌橘，不再是深墨色。
 
 ## 0. 設計原則（互相衝突時，照這個順序取捨）
 
 1. **不說「安全」**：畫面上沒有綠色判定、沒有勾勾大圖示、沒有 "Safe" 這個字當判定。沒找到紅旗就是琥珀卡。
 2. **失敗就誠實說不知道**：任何失敗都不能變成琥珀卡。前端收到未知的 `verdict` 值，或連不到後端，一律顯示灰卡。
 3. **顏色不是唯一的訊號**：每一種狀態都同時有顏色、圖示字元、文字，色弱的人和投影偏色的情況下也看得懂。
-4. **一個畫面只有一個主動作**：`Check message` 是唯一的深色實心按鈕。`Copy reply` 是結果出來之後的第二個動作（青綠色）。
+4. **一個畫面只有一個主動作**：`Check message` 是唯一的品牌橘實心按鈕。`Copy reply` 是結果出來之後的第二個動作（青綠色）。
 5. **訊息內容一律當作不可信的純文字**：只用 `textContent` 顯示，**訊息裡的連結絕對不能做成可以點的超連結**，也不能自動偵測成電話或 email。
 6. **手機優先**：以 iPhone SE（375px 寬）到 430px 為主要尺寸，內容最大寬度 480px 置中。桌機看到的也是同一條直欄。
 
@@ -85,6 +86,19 @@
   --color-ink: #111827;           /* 主按鈕 Check message、步驟完成的實心圓 */
   --color-on-ink: #FFFFFF;
   --color-focus: #2563EB;         /* 只用在鍵盤焦點框 */
+  --color-page: #FFF7F2;          /* 頁面底：暖白（2026-09-24 改），內容放在白色圓角卡上 */
+
+  /* 品牌珊瑚橘（2026-09-24 新增）：主按鈕、header、步驟圓點、範例按鈕。絕不用在判定卡 */
+  --brand: #C2410C;               /* 主按鈕底、步驟完成實心圓；白字對比 5.2:1 */
+  --brand-strong: #9A3412;        /* 淺橘底上的文字（範例按鈕、Try a sample 標題），對比 7:1 以上 */
+  --brand-hover: #A93A0B;
+  --brand-bright: #FF7A45;        /* 只做裝飾（logo 漸層），不能當文字色 */
+  --brand-tint: #FFEDE3;          /* 步驟待命圓點底、範例按鈕選中底、輸入框焦點光暈 */
+  --brand-border: #FDC9AE;
+  --on-brand: #FFFFFF;
+  --shadow-sm: 0 1px 2px rgba(154,52,18,.08), 0 1px 3px rgba(17,24,39,.06);
+  --shadow-md: 0 4px 14px rgba(154,52,18,.10), 0 2px 4px rgba(17,24,39,.05);
+  --radius-lg: 18px;              /* 白卡、判定卡、header 底角 */
 
   /* 判定三態 */
   --red-text: #B91C1C;   --red-accent: #DC2626;   --red-bg: #FEF2F2;   --red-border: #FCA5A5;
@@ -117,9 +131,12 @@
 | 琥珀 | 只有琥珀卡 | 其他任何地方 |
 | 灰 | 灰卡（虛線外框）、步驟「沒完成」、離線模式提示 | — |
 | 青綠 | **只有** Safe reply 卡和 Copy reply 按鈕 | 判定卡、步驟標籤、任何「完成」「通過」的圖示 |
-| 深墨色 | 主按鈕、步驟完成的實心圓 | — |
+| 品牌橘 | 主按鈕、header／logo、步驟圓點、範例按鈕、輸入框焦點 | 判定卡、紅旗清單（避免和紅／琥珀混淆） |
+| 深墨色 | 正文文字 | — |
 
-- 步驟完成用**深墨色實心圓＋白色勾**，不是綠色勾。這是刻意的：綠色勾會讓人誤讀成「通過＝安全」。
+- 步驟完成用**品牌橘實心圓＋白色勾**，不是綠色勾。這是刻意的：綠色勾會讓人誤讀成「通過＝安全」。
+- 老闆建議的薄荷青輔色**不採用**：青綠已保留給 Safe reply，當裝飾色會讓人把「品牌」讀成「安全」。輔色改用暖白頁底＋白卡＋柔和陰影。
+- 動態：按鈕按下微縮、步驟完成時圓點彈一下（260ms）、卡片淡入；`prefers-reduced-motion` 時全部關閉。
 - 對比度：所有文字對底色至少 4.5:1（琥珀卡用深棕 `#92400E` 當文字色，不用亮琥珀）。
 - 灰卡文字要全亮度（`--grey-text`），不能做成像 disabled 的淡灰。灰卡是刻意的結果，不是錯誤畫面。
 
@@ -198,6 +215,21 @@
 
 **文案紅線**：介面、影片、pitch 任何地方都**不能**出現 "detect fake screenshots"、"verify payment proof"、"fake transfer" 這類字眼。截圖只讀文字。
 
+### 3.2 Try a sample 範例按鈕（2026-09-24 拍板新增）
+
+**位置**：`Paste text` 分頁內、`Buyer's message` 標籤上方。小標 `Try a sample`（13px／700、大寫、`--brand-strong`）。
+
+| 按鈕文字 | 填入內容 | 預期 |
+|---|---|---|
+| `Fake verify link` | storyboard 第 3 節 Demo-EN（`https://carousell-sg.verify-deal.example/seller`） | 紅 |
+| `Normal buyer` | Demo-Normal（`https://shopee.sg/` 平台首頁，不含任何賣家資訊） | 琥珀 |
+| `Prompt injection` | Demo-Injection | 紅 |
+
+- 樣式：膠囊按鈕，高 40px、白底、1px `--brand-border`、`--brand-strong` 14px／600 字，前面一個 14px 線條 SVG 圖示；選中時 `aria-pressed="true"`、`--brand-tint` 底＋品牌橘外框。一排放不下時橫向捲動，不換行。
+- 行為：點了只**覆蓋 textarea、清掉結果與步驟**，**不自動送出**；忙碌中不能點。使用者開始打字或按 `Clear` 時取消選中。
+- 首次載入：textarea 為空時預填 `Fake verify link` 的內容並標為選中，讓評審打開就能直接按 `Check message`。
+- 範例網址一律用不存在的示範網域（`.example`）或平台首頁；不放任何真實電話、姓名、帳號。內容以 storyboard 第 3 節為準，要改請兩邊一起改，也不能和 Quinn 的評測集重複。
+
 ## 4. 四步驟標籤
 
 ### 固定文字
@@ -218,9 +250,9 @@
 
 | 前端狀態 | 圓點 | 狀態字 | 什麼時候 |
 |---|---|---|---|
-| `idle` | 灰框空心，裡面是步驟編號 | （空） | 還沒按 Check message |
-| `run` | 深墨色框＋旋轉圈 | `Reading…`／`Checking…` | 等待後端回應 |
-| `done` | 深墨色實心＋白色 ✓ | `Done` | API 回 `done` |
+| `idle` | 淡橘底＋淡橘框，裡面是步驟編號 | （空） | 還沒按 Check message |
+| `run` | 品牌橘框＋淡橘光暈＋旋轉圈 | `Reading…`／`Checking…` | 等待後端回應 |
+| `done` | 品牌橘實心＋白色 ✓（彈一下） | `Done` | API 回 `done` |
 | `none` | 灰色虛線框＋ – | `No links` | API 回 `none`（訊息裡沒有連結） |
 | `warn` | 灰底＋ ! | `Didn't finish` | API 回 `error` 或 `skipped` |
 | `warn`（第 4 格） | 灰底＋ ! | `Without Gemini` | `problems` 含任何 `gemini_*` 或 `rate_limited` |
