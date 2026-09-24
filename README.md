@@ -23,7 +23,8 @@ Scammers pose as buyers and push sellers toward "verify your payment guarantee" 
 
 ### Status (2026-09-24)
 
-- The backend skeleton and the single-page mobile UI both work in **offline mode**; the unit tests pass. Real Gemini and Web Risk are not connected yet, and nothing is deployed.
+- **Live demo (offline mode)**: https://repsafe-195979831646.asia-southeast1.run.app (Cloud Run, `asia-southeast1`). Verdicts currently come from keyword rules, not Gemini; the page says so at the top. See `docs/engineering/deploy.md`.
+- The backend skeleton and the single-page mobile UI both work in **offline mode**; the unit tests pass. Real Gemini and Web Risk are not connected yet; the deployed service runs in offline mode.
 - Two gates must pass before full development continues: the organizers must allow a second entry, and at least 3 real, consented seller cases must be collected by 9/29.
 - The time budget is 25 hours, with a target of 10/11. See `docs/roadmap.md`.
 
@@ -55,7 +56,7 @@ Project docs are written in Traditional Chinese, except the pitch material and t
 | Area | File |
 |---|---|
 | Product requirements / Roadmap | `docs/prd.md`, `docs/roadmap.md` |
-| Architecture | `docs/engineering/architecture.md` |
+| Architecture / Deployment | `docs/engineering/architecture.md`, `docs/engineering/deploy.md` |
 | UI spec / Video storyboard | `docs/design/ui-spec.md`, `docs/design/storyboard.md` |
 | Pitch script (English) | `docs/pitch/pitch-script.md` |
 | Seller outreach / Data sources | `docs/sales/seller-outreach.md`, `docs/sales/data-sources.md` |
@@ -76,9 +77,11 @@ Project docs are written in Traditional Chinese, except the pitch material and t
 
 ### 狀態
 
-**2026-09-24**：後端骨架與單頁前端在離線模式可以跑，單元測試通過；還沒接真的 Gemini、Web Risk，也還沒部署。要先過兩道關卡：主辦允許交兩件（9/30）、9/29 晚上盤點到 ≥ 3 則真實案例。詳見 `docs/roadmap.md`。
+**線上 demo（離線模式）**：https://repsafe-195979831646.asia-southeast1.run.app （Cloud Run、新加坡區）。目前判定來自關鍵字規則，不是 Gemini；部署與切換方式見 `docs/engineering/deploy.md`。
 
-已拍板（2026-09-24）：截圖上傳納入 MVP（含瀏覽器本機預覽）、GCP 預算上限 100 USD、影片開場用新加坡／東南亞案例、工時超支先精簡影片後製。
+**2026-09-24**：後端骨架與單頁前端在離線模式可以跑，單元測試通過；還沒接真的 Gemini、Web Risk；線上版目前是離線模式。要先過兩道關卡：主辦允許交兩件（9/30）、9/29 晚上盤點到 ≥ 3 則真實案例。詳見 `docs/roadmap.md`。
+
+已拍板（2026-09-24）：截圖上傳納入 MVP（含瀏覽器本機預覽）、GCP 預算上限 100 SGD（帳單幣別；已設警示）、影片開場用新加坡／東南亞案例、工時超支先精簡影片後製。
 
 ### 本機啟動
 
@@ -101,13 +104,14 @@ Project docs are written in Traditional Chinese, except the pitch material and t
 | `docs/roadmap.md` | 9/24–10/11 時程、停損點、老闆必做事項 | Paula |
 | `docs/meetings/2026-09-24-電商客服反詐騙.md` | 立案會議紀錄與會後拍板 | — |
 | `docs/engineering/architecture.md` | 架構、模組、判定三態規則、安全設計、工時重估、部署設定、待決定事項 | Eddie |
+| `docs/engineering/deploy.md` | Cloud Run 部署紀錄：專案、網址、設定、重新部署指令、切換真 Gemini 步驟 | Eddie |
 | `docs/design/ui-spec.md` | 手機單畫面規格：版面、色彩與字體 token、輸入區（含截圖預覽）、四步驟標籤、判定卡三態、英文 UI 文案定稿、各狀態、API JSON 欄位對照 | Dana |
 | `docs/design/storyboard.md` | 3 分鐘影片分鏡：時間碼、畫面、英文旁白與字幕；開場用新加坡／東南亞案例、demo 用訊息、錄影前檢查清單 | Dana |
 | `app/static/index.html` | 單檔靜態前端（純 HTML/CSS/JS、沒有建置步驟），由 `/` 提供，呼叫 `/api/config`、`/api/analyze`、`/api/extract-text` | Dana |
 | `docs/sales/seller-outreach.md` | 9/25–9/29 真實案例徵集：各管道中英文貼文範本、書面同意書範本（中英）、打碼規則與存放位置、20 分鐘訪談題目（含每月願付多少）、9/29 盤點表格式 | Sandy |
 | `docs/sales/data-sources.md` | 影片與 pitch 需要的公開統計清單、建議查找的官方來源、使用規則、找不到時的備用說法；目前全部「待驗證」 | Sandy |
 | `docs/pitch/pitch-script.md` | Pitch 三句英文定稿＋中文對照、3 分鐘真人講稿（對齊分鏡格 ①–⑥）、競品與常見質疑的一句話回應、紅線、排練清單 | Sandy |
-| `docs/finance/budget.md` | 獨立 GCP 專案、預算上限 100 USD、50／90／100% 警示設定步驟、警示不會停止扣款的四道防線、成本項目清單（單價全部待查證）、單次分析成本公式、各期間呼叫次數估算、工時配置與上限檢查 | Felix |
+| `docs/finance/budget.md` | 獨立 GCP 專案、預算上限 100 SGD、50／90／100% 警示設定步驟、警示不會停止扣款的四道防線、成本項目清單（單價全部待查證）、單次分析成本公式、各期間呼叫次數估算、工時配置與上限檢查 | Felix |
 | `docs/finance/timesheet.csv` | 工時記帳表格式（五類：後端／評測／前端／部署影片／找賣家）；實際記帳建議放 `data/private/`，不 commit | Felix |
 | `docs/qa/test-plan.md` | 測試策略、33 則評測集組成、判定規則（灰卡算漏報、失敗 fallback）、驗收門檻、盲測規則、熱機／冷啟動量測、上線前檢查清單 | Quinn |
 | `docs/qa/bugs.md` | Bug 與改善建議清單（交給 Eddie），對應 `tests/test_qa_adversarial.py` 的 strict xfail | Quinn |
