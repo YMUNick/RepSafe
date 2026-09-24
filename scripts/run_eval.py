@@ -76,6 +76,10 @@ def make_inprocess():
     from app.tools.url_reputation import make_reputation
 
     settings = get_settings()
+    if settings.agent_mode == "gemini" and settings.gcp_project in ("", "your-gcp-project-id"):
+        # Without this every case turns grey (gemini_unavailable) and the report looks like a model failure.
+        sys.exit("AGENT_MODE=gemini but GOOGLE_CLOUD_PROJECT is not set (no .env?). "
+                 "Set it (see .env.example), or run: python scripts/run_eval.py --offline")
     reputation = make_reputation(settings)
     limiter = RateLimiter(10 ** 6)  # the eval must not be cut by the per-hour cost limiter
 

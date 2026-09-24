@@ -1,4 +1,5 @@
-"""OPTIONAL screenshot -> text module. Off unless SCREENSHOT_ENABLED=true (docs/prd.md section 11: pending decision).
+"""Screenshot -> text module. On by default (boss decision 2026-09-24); SCREENSHOT_ENABLED=false turns it off.
+Offline mode (AGENT_MODE=offline_fixture) returns OFFLINE_TEXT without calling GCP.
 
 Only reads text. It never judges the image and never claims to detect forged payment screenshots.
 The text goes back to the browser so the seller can check it (look-alike letters in links are easy to

@@ -40,7 +40,7 @@ class Settings:
     webrisk_timeout_s: float      # one Web Risk lookup; past this that URL counts as "error"
     max_urls_checked: int         # URLs looked up per request; the rest are "skipped" (no amber possible)
     max_input_chars: int
-    screenshot_enabled: bool      # screenshot -> text module (app/screenshot.py); off = endpoint returns 404
+    screenshot_enabled: bool      # screenshot -> text module (app/screenshot.py); on by default (boss 9/24); off = 404
     max_image_mb: float
     global_rate_limit_per_hour: int  # all clients together = the Gemini cost ceiling; over it -> grey card
 
@@ -58,7 +58,7 @@ class Settings:
             webrisk_timeout_s=float(_env("WEBRISK_TIMEOUT_S", "3")),
             max_urls_checked=int(_env("MAX_URLS_CHECKED", "5")),
             max_input_chars=int(_env("MAX_INPUT_CHARS", "5000")),
-            screenshot_enabled=_bool("SCREENSHOT_ENABLED", "false"),
+            screenshot_enabled=_bool("SCREENSHOT_ENABLED", "true"),
             max_image_mb=float(_env("MAX_IMAGE_MB", "10")),
             global_rate_limit_per_hour=int(_env("GLOBAL_RATE_LIMIT_PER_HOUR", "120")),
         )

@@ -4,16 +4,17 @@
 - 來源：閱讀 `app/` 程式＋離線實測（`.venv` 內 pytest、`scripts/run_eval.py --offline --edge`、直接呼叫模組）。**沒有碰到真 Gemini、Web Risk、Cloud Run、手機瀏覽器。**
 - 我沒有改任何 `app/` 程式。標 xfail 的測試在 `tests/test_qa_adversarial.py`，全部 `strict=True, raises=AssertionError`：修好後測試會變成 XPASS → 失敗，請拿掉那一條的 `@pytest.mark.xfail`，斷言不要改。
 - 目前 `pytest`：77 passed、17 xfailed。
+- **2026-09-24 Eddie 更新**：BUG-001、002、004、005 已修，對應 xfail 已拿掉（斷言沒改）；另加首頁路由與截圖路由測試。現在 `pytest`：90 passed、5 xfailed（剩 BUG-003 ×3、006、007）。
 - 嚴重度：**High**＝違反 PRD 驗收門檻或安全要求；**Medium**＝會讓評測或 demo 出錯、傷信任；**Low**＝機率低或只影響說明文字。
 - 測試字串用的網域全是 `.example` 或明顯編出來的名字（例如 `repsafe-qa-test-shopee.sbs`），沒有真實釣魚網址。
 
 | ID | 嚴重度 | 標題 | 自動化測試 | 建議期限 | 狀態 |
 |---|---|---|---|---|---|
-| BUG-001 | High | Gemini 回報 `injection_detected=true` 被忽略，可能出琥珀卡 | xfail ×1 | 10/5 | Open |
-| BUG-002 | High | 不帶 `http(s)://`、頂級網域不在清單的網址完全看不到：兩個工具都不跑，回覆過濾也濾不掉 | xfail ×5 | 10/5 | Open |
+| BUG-001 | High | Gemini 回報 `injection_detected=true` 被忽略，可能出琥珀卡 | xfail ×1 | 10/5 | **Fixed 9/24** |
+| BUG-002 | High | 不帶 `http(s)://`、頂級網域不在清單的網址完全看不到：兩個工具都不跑，回覆過濾也濾不掉 | xfail ×5 | 10/5 | **Fixed 9/24** |
 | BUG-003 | Medium | 程式注入防護漏掉常見變體（`Ignore your previous instructions`、`Ignore all instructions`、「不要理會前面的規則」） | xfail ×3 | 10/5 | Open |
-| BUG-004 | Medium | 改字＋國家後綴（`shoppee-tw`、`shope-tw`、`caroussel-sg`）沒被判成冒用，評測 L03 的 F4 驗收不過 | xfail ×3 | 10/5 | Open |
-| BUG-005 | High | 安全回覆過濾：沒有 `ID:` 前綴的 LINE／Telegram 帳號不會被濾掉 | xfail ×3 | 10/5 | Open |
+| BUG-004 | Medium | 改字＋國家後綴（`shoppee-tw`、`shope-tw`、`caroussel-sg`）沒被判成冒用，評測 L03 的 F4 驗收不過 | xfail ×3 | 10/5 | **Fixed 9/24** |
+| BUG-005 | High | 安全回覆過濾：沒有 `ID:` 前綴的 LINE／Telegram 帳號不會被濾掉 | xfail ×3 | 10/5 | **Fixed 9/24** |
 | BUG-006 | Medium | 安全回覆過濾：全形字寫的網址不會被濾掉 | xfail ×1 | 10/5 | Open |
 | BUG-007 | Low | Gemini 引用 1 個字元（例如 `a`）也算「對得到原句」，會變成紅旗 | xfail ×1 | 10/9 | Open |
 | BUG-008 | Medium | `/health` 暖不到 Gemini／Web Risk client，冷啟動後第一則分析可能逾時變灰卡（推測，待雲端實測） | 無（要雲端） | 部署當天 | Open |
@@ -32,6 +33,7 @@
 - **預期**：Gemini 自己說偵測到注入，就不能是琥珀。建議：`injection_detected=true` 而程式防護沒抓到時，加一條紅旗（`code=prompt_injection`、`tool=gemini`；quote 找不到可驗證的句子時，就用整段訊息的第一句或改成灰卡加 problem code `gemini_injection_unquoted`）。
 - **為什麼 High**：PRD 門檻是 injection 3/3 全擋。評測 I02、I03 程式防護抓不到（BUG-003），只能靠 Gemini；Gemini 只要「偵測到了但 scam_type 填 none」一次，就不過門檻。這也是最典型的注入效果：模型被說服「不要列紅旗」，但誠實地把 flag 設成 true。
 - **測試**：`test_gemini_injection_detected_alone_is_not_amber`
+- **修法（Eddie 9/24，Fixed）**：`app/analyze.py` 新增 `gemini_injection_flag()`。Gemini 回 `injection_detected=true`、而目前紅旗裡沒有任何 `prompt_injection` 時，補一條紅旗（`code=prompt_injection`、`tool=gemini`），quote 用原訊息第一句（一定對得到原文，F7 成立，最長 200 字）。結果：這種情況一律紅卡，不會是琥珀。
 
 ## BUG-002（High）不帶 scheme、頂級網域不在清單的網址完全看不到
 
@@ -44,6 +46,8 @@
 - **為什麼 High**：兩個工具（技術分主打）完全被繞過，而且違反「安全回覆 100% 不含原訊息連結」的門檻。
 - **評測**：邊緣集 E03（離線靠關鍵字仍是紅，但沒有網域紅旗）。
 - **測試**：`test_bare_link_with_common_phishing_tld_is_extracted`（4 個頂級網域）、`test_bare_rare_tld_link_is_filtered_from_reply`
+- **修法（Eddie 9/24，Fixed）**：`app/tools/domain_check.py` 兩層都做：①`BARE_TLDS` 補上上面建議的全部頂級網域（再加 `xin`、`ink`、`wang`、`red`、`kim`、`men`、`loan`、`cam`）；②清單外的頂級網域，只要後面有路徑／埠號，或是（頂級網域全小寫且）名稱含 `-` 或品牌名，也算連結；常見副檔名（`jpg`、`pdf`、`docx`…，見 `FILE_EXTS`）永遠不算。`Mr.Smith`、`photo.jpg`、`Anne-Marie.Lee` 實測不會被當成連結。回覆過濾用同一個 `extract_urls()`，所以一起修好。離線評測 E03 現在有 `brand_impersonation`。
+- **已知取捨**：`my-file.xyz` 這類字串會被當成連結送去 Web Risk 查（不會因此變紅）。
 
 ## BUG-003（Medium）程式注入防護漏掉常見變體
 
@@ -65,6 +69,8 @@
 - **為什麼 Medium**：PRD F4 驗收寫「4 則 punycode／改字網域全部抓到」，評測 L03 目前工具沒抓到（離線是靠關鍵字「客服」才變紅），F4 驗收不過。`shopee-tw` 這種寫法本來就是分鏡 demo 的主角，改一個字母就漏，評審很容易想到。
 - **評測**：L03、邊緣集 E07。
 - **測試**：`test_typosquat_with_country_suffix_is_flagged`（3 個網域）
+- **修法（Eddie 9/24，Fixed）**：`check_url()` 算編輯距離時，除了整個標籤，也把標籤用 `-`／`_` 拆開，每段（≥ 4 字元）各自和品牌比。離線評測 L03、E07 都抓到 `lookalike_domain`，F4／F5 工具門檻變 PASS。
+- **已知取捨**：`coffee-shoppe.example` 這類含英文字 `shoppe` 的網域會被判 `lookalike_domain`（和 Shopee 差 1 字）；在二手交易訊息裡很少見，先接受。
 
 ## BUG-005（High）沒有 `ID:` 前綴的聯絡帳號不會被濾掉
 
@@ -76,6 +82,8 @@
 - **預期**：PRD F8「100% 不含原訊息的帳號」。建議：原訊息中出現在 `LINE`、`賴`、`line`、`WhatsApp`、`Telegram`、`TG`、`WeChat`、`微信`、`加我` 後面 0–3 個字元內的英數字串（含 `_`、`.`、`-`，長度 ≥ 4）都列為 secret；或更保守：原訊息裡任何「英數混合、長度 ≥ 6、含數字或底線」的字串都當 secret。
 - **為什麼 High**：直接違反 100% 門檻；而且這是「幫詐騙轉傳聯絡方式」，最傷信任。離線評測永遠看不到（離線用固定範本），只有真 Gemini 會觸發。
 - **測試**：`test_contact_handle_without_id_prefix_is_filtered`（3 個例子）
+- **修法（Eddie 9/24，Fixed）**：`app/reply_filter.py` 新增 `_CONTACT`：`LINE`、`WhatsApp`、`Telegram`、`TG`、`WeChat`、`Kakao`、`Signal`、`Viber`、`Zalo`、`Skype`、`微信`、`賴`、`加我` 後面（中間可夾 `ID`、`me`、`at`、`:`、`：`、`是`、`帳號` 等）接的英數字串（≥ 4 字元，含 `_`、`.`、`-`）列為 secret。為避免把英文 `via Line later` 的 `later` 濾掉：英文關鍵字後面沒有冒號或 `ID` 時，字串要含數字或 `_`／`.`／`-` 才算；中文關鍵字、有冒號或 `ID` 時一律算。
+- **仍未涵蓋**：英文關鍵字後面接純英文字母、又沒有冒號的帳號（例如 `line me at scammer`）；以及完全沒有 App 名稱的帳號。
 
 ## BUG-006（Medium）全形網址不會被濾掉
 

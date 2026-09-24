@@ -2,7 +2,8 @@
 
 Runs on every reply (Gemini's and the fixed fallback), after the prompt already forbids them.
 Removes: any link / bare domain / punycode host, emails, @handles, "ID: xxx" values, runs of 6+ digits
-(bank accounts, phone numbers), and every link, host, number or handle that appeared in the buyer's message.
+(bank accounts, phone numbers), and every link, host, number or handle that appeared in the buyer's message
+(including chat-app handles written after "LINE" / "賴" / "Telegram" ... without an "ID:" prefix).
 """
 from __future__ import annotations
 
@@ -15,6 +16,11 @@ REMOVED = "[removed]"
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _HANDLE = re.compile(r"(?<![\w@])@[A-Za-z0-9._-]{3,}")
 _ID_VALUE = re.compile(r"(?i)\b((?:line\s*)?id|帳號|账号|帐号|account|acct)\s*[:：]\s*[^\s，。,]+")
+# Chat-app handle without an "ID:" prefix (BUG-005): "加我賴 abc_123", "LINE：abc", "Telegram me at abc_1".
+_CONTACT = re.compile(
+    r"(?i)(?<![a-z])(line|whats\s?app|telegram|tg|wechat|weixin|kakao|signal|viber|zalo|skype|微信|賴|加我)(?![a-z])"
+    r"((?:\s*(?:id|me|at|is|on|:|：|是|的|帳號|账号|號|号))*)\s*([a-z0-9][a-z0-9_.\-]{3,})"
+)
 _DIGITS = re.compile(r"(?<!\d)(?:\d[\s\-.]?){5,}\d(?!\d)")  # 6+ digits, spaces/dashes allowed between
 _XN = re.compile(r"(?i)\bxn--[a-z0-9\-]+(?:\.[a-z0-9\-]+)*")
 _SPACES = re.compile(r"[ \t]{2,}")
@@ -30,6 +36,13 @@ def _secrets_from(text: str) -> set[str]:
         out.update(m.group(0).strip() for m in rx.finditer(text))
     for m in _ID_VALUE.finditer(text):
         out.add(m.group(0).split(":", 1)[-1].split("：", 1)[-1].strip())
+    for m in _CONTACT.finditer(text):
+        app_name, filler, handle = m.group(1), m.group(2), m.group(3).rstrip(".-")
+        # After an English "line" / "signal" a plain word ("later") is just English; keep only handle-looking
+        # strings there. After a colon, "ID", or a CJK keyword, anything counts.
+        if (not app_name.isascii() or re.search(r"(?i)id|[:：]", filler)
+                or any(c.isdigit() or c in "_.-" for c in handle)):
+            out.add(handle)
     return {s for s in out if len(s) >= 3}
 
 

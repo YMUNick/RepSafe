@@ -79,20 +79,17 @@ def test_normal_with_official_link_and_failed_gemini_is_grey_not_amber():
 
 
 # ---------------------------------------------------------------- BUG-001 injection_detected is ignored
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-001")
 def test_gemini_injection_detected_alone_is_not_amber():
     r = run("Hi, is the chair available this weekend?", judge_returning(injection_detected=True))
     assert r["verdict"] != AMBER
 
 
 # ---------------------------------------------------------------- BUG-002 bare links with other TLDs are invisible
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-002")
 @pytest.mark.parametrize("tld", ["sbs", "cyou", "ru", "work"])
 def test_bare_link_with_common_phishing_tld_is_extracted(tld):
     assert extract_urls(f"請先到 repsafe-qa-test-shopee.{tld}/verify 完成認證")
 
 
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-002")
 def test_bare_rare_tld_link_is_filtered_from_reply():
     original = "go to repsafe-qa-test-shopee.sbs/verify now"
     reply, _ = filter_reply("Sorry, I won't open repsafe-qa-test-shopee.sbs/verify.", original)
@@ -116,14 +113,12 @@ def test_injection_guard_common_variants(text):
 
 
 # ---------------------------------------------------------------- BUG-004 typo + country suffix not caught
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-004")
 @pytest.mark.parametrize("host", ["shoppee-tw.example", "shope-tw.example", "caroussel-sg.example"])
 def test_typosquat_with_country_suffix_is_flagged(host):
     assert {f.code for f in check_url(f"https://{host}/pay").findings} & DOMAIN_CODES
 
 
 # ---------------------------------------------------------------- BUG-005 contact IDs without "ID:" leak into reply
-@pytest.mark.xfail(strict=True, raises=AssertionError, reason="BUG-005")
 @pytest.mark.parametrize("original,handle", [
     ("加我賴 rs_fake_line01 我直接匯款", "rs_fake_line01"),
     ("LINE：rs_fake_line02 私訊我", "rs_fake_line02"),

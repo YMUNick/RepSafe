@@ -70,6 +70,22 @@ textarea[aria-invalid="true"] { border-color: var(--red-accent); }
 .error { margin: var(--space-2) 0 0; font-size: var(--fs-sm); color: var(--red-text); font-weight: 600; }
 .drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 160px; padding: var(--space-4);
   border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); text-align: center; color: var(--color-text-2); font-size: var(--fs-sm); }
+/* screenshot preview: local object URL only (ui-spec 3.1) */
+.shot-preview { margin-bottom: var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); }
+.shot-row { display: grid; grid-template-columns: 72px 1fr; gap: var(--space-3); align-items: start; }
+.shot-thumb { width: 72px; height: 72px; padding: 0; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-bg);
+  overflow: hidden; display: grid; place-items: center; color: var(--color-text-2); cursor: zoom-in; }
+.shot-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.shot-thumb[aria-expanded="true"] { border: 2px solid var(--color-ink); cursor: zoom-out; }
+.shot-file { cursor: default; align-content: center; gap: 2px; font-size: var(--fs-xs); font-weight: 700; }
+.shot-info { min-width: 0; }
+.shot-name { margin: 0; font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.shot-sub { margin: 2px 0 0; font-size: var(--fs-xs); color: var(--color-text-muted); }
+.shot-actions { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
+.btn-sm { min-height: 40px; padding: 0 var(--space-4); font-size: var(--fs-sm); }
+.shot-full { margin-top: var(--space-3); }
+.shot-full img { display: block; width: 100%; max-height: 70vh; object-fit: contain; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+
 .actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); }
 .btn { min-height: var(--tap); padding: 0 var(--space-5); border-radius: var(--radius-md); font: inherit; font-weight: 700; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); }
@@ -150,6 +166,31 @@ footer { margin-top: var(--space-6); font-size: var(--fs-xs); color: var(--color
     <div class="tabs" id="tabs" role="tablist" hidden>
       <button type="button" role="tab" id="tab-text" aria-selected="true" aria-controls="panel-text">Paste text</button>
       <button type="button" role="tab" id="tab-shot" aria-selected="false" aria-controls="panel-shot">Upload screenshot</button>
+    </div>
+
+    <!-- Screenshot preview. Shown on both tabs so the seller can compare the read text with the picture.
+         The image is shown from a local object URL only: never uploaded again, never stored. -->
+    <div class="shot-preview" id="shot-preview" hidden>
+      <div class="shot-row">
+        <button type="button" class="shot-thumb" id="shot-thumb" aria-expanded="false" aria-controls="shot-full-wrap" aria-label="Show screenshot larger">
+          <img id="shot-img" alt="">
+        </button>
+        <div class="shot-thumb shot-file" id="shot-file" role="img" aria-label="Screenshot file, no preview" hidden>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/>
+          </svg>
+          <span id="shot-ext" aria-hidden="true">HEIC</span>
+        </div>
+        <div class="shot-info">
+          <p class="shot-name" id="shot-name"></p>
+          <p class="shot-sub" id="shot-sub"></p>
+          <div class="shot-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="shot-change" aria-label="Change screenshot">Change</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="shot-remove" aria-label="Remove screenshot">Remove</button>
+          </div>
+        </div>
+      </div>
+      <div class="shot-full" id="shot-full-wrap" hidden><img id="shot-full" alt="Your screenshot, full size"></div>
     </div>
 
     <div id="panel-text" role="tabpanel">
@@ -263,6 +304,7 @@ footer { margin-top: var(--space-6); font-size: var(--fs-xs); color: var(--color
   clearBtn.addEventListener("click", () => {
     if (busy) return;
     msg.value = ""; updateCount(); showInputError(""); msgNotice.hidden = true;
+    removePreview();
     results.replaceChildren(); resetSteps(); msg.focus();
   });
 
@@ -276,28 +318,90 @@ footer { margin-top: var(--space-6); font-size: var(--fs-xs); color: var(--color
   $("tab-text").addEventListener("click", () => selectTab("text"));
   $("tab-shot").addEventListener("click", () => selectTab("shot"));
 
-  $("shot").addEventListener("change", async (e) => {
+  // ---------- screenshot preview (ui-spec 3.1) ----------
+  // Privacy: the preview is a local object URL only. It is never uploaded again, never put in localStorage,
+  // and the URL is revoked whenever the picture is changed, removed or cleared.
+  const ALLOWED_MIME = ["image/png", "image/jpeg", "image/webp", "image/heic", "image/heif"];
+  const shotStatus = $("shot-status"), shotError = $("shot-error"), shotInput = $("shot");
+  const preview = $("shot-preview"), thumb = $("shot-thumb"), thumbImg = $("shot-img"), fileBox = $("shot-file");
+  const fullWrap = $("shot-full-wrap"), fullImg = $("shot-full");
+  let shotUrl = null;
+  let shotSeq = 0;   // bumps on every new pick / remove, so a late /api/extract-text answer for an old picture is ignored
+
+  const fmtSize = (b) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+  const extOf = (name) => { const m = /\.([a-z0-9]{1,5})$/i.exec(name || ""); return m ? m[1].toUpperCase() : "IMAGE"; };
+
+  function setExpanded(on) {
+    thumb.setAttribute("aria-expanded", String(on));
+    thumb.setAttribute("aria-label", on ? "Hide larger screenshot" : "Show screenshot larger");
+    if (on && shotUrl) fullImg.src = shotUrl;
+    fullWrap.hidden = !on;
+  }
+  function revokePreview() {
+    if (shotUrl) URL.revokeObjectURL(shotUrl);
+    shotUrl = null;
+    thumbImg.removeAttribute("src"); fullImg.removeAttribute("src");
+  }
+  function removePreview() {
+    shotSeq++;
+    revokePreview();
+    setExpanded(false);
+    preview.hidden = true;
+    shotStatus.hidden = true; shotError.hidden = true;
+  }
+  function showPreview(file) {
+    revokePreview();
+    setExpanded(false);
+    shotUrl = URL.createObjectURL(file);
+    const size = fmtSize(file.size);
+    $("shot-name").textContent = file.name || "Screenshot";
+    $("shot-sub").textContent = `${size}. Preview stays on this device.`;
+    thumb.hidden = false; fileBox.hidden = true;
+    thumbImg.onerror = () => {   // e.g. HEIC in Chrome / Firefox: show file name + icon instead
+      if (!shotUrl || thumbImg.getAttribute("src") !== shotUrl) return;
+      const ext = extOf(file.name);
+      setExpanded(false);
+      thumb.hidden = true; fileBox.hidden = false;
+      $("shot-ext").textContent = ext;
+      $("shot-sub").textContent = `${size}. This browser can't show ${ext} images, but we can still read the text.`;
+    };
+    thumbImg.src = shotUrl;
+    preview.hidden = false;
+  }
+  thumb.addEventListener("click", () => setExpanded(thumb.getAttribute("aria-expanded") !== "true"));
+  $("shot-change").addEventListener("click", () => shotInput.click());
+  $("shot-remove").addEventListener("click", () => { removePreview(); ($("panel-text").hidden ? shotInput : msg).focus(); });
+  window.addEventListener("pagehide", revokePreview);
+
+  shotInput.addEventListener("change", async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = "";
-    const status = $("shot-status"), err = $("shot-error");
-    err.hidden = true; status.hidden = true;
+    shotError.hidden = true; shotStatus.hidden = true;
     if (!file) return;
     let mime = file.type;
     if (!mime && /\.hei[cf]$/i.test(file.name)) mime = /\.heif$/i.test(file.name) ? "image/heif" : "image/heic";
-    if (file.size > cfg.max_image_mb * 1024 * 1024) { err.textContent = `Image is larger than ${cfg.max_image_mb} MB.`; err.hidden = false; return; }
-    status.textContent = "Reading text from your screenshot…"; status.hidden = false;
+    const fail = (text) => { selectTab("shot"); shotError.textContent = text; shotError.hidden = false; };
+    // Rejected files are not previewed and not uploaded; an earlier preview (if any) stays as it was.
+    if (!ALLOWED_MIME.includes(mime)) { fail("This file type isn't supported. Use PNG, JPG, WebP or HEIC."); return; }
+    if (file.size > cfg.max_image_mb * 1024 * 1024) { fail(`Image is larger than ${cfg.max_image_mb} MB.`); return; }
+    showPreview(file);
+    const mySeq = ++shotSeq;
+    selectTab("shot"); msgNotice.hidden = true;
+    shotStatus.textContent = "Reading text from your screenshot…"; shotStatus.hidden = false;
     try {
       const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
       const r = await fetch("/api/extract-text", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ image_base64: dataUrl, mime_type: mime }) });
       const body = await r.json().catch(() => ({}));
+      if (mySeq !== shotSeq) return;   // picture was changed or removed while reading
       if (!r.ok) throw new Error(typeof body.detail === "string" ? body.detail : "Could not read the screenshot. Please paste the text.");
       msg.value = body.text || ""; updateCount(); showInputError("");
-      status.hidden = true; selectTab("text"); msgNotice.hidden = false; msg.focus();
+      shotStatus.hidden = true; selectTab("text"); msgNotice.hidden = false; msg.focus();
     } catch (ex) {
-      status.hidden = true;
-      err.textContent = ex && ex.message && !/fetch|network/i.test(ex.message) ? ex.message : "Could not read the screenshot. Please paste the text.";
-      err.hidden = false;
+      if (mySeq !== shotSeq) return;
+      shotStatus.hidden = true;
+      shotError.textContent = ex && ex.message && !/fetch|network/i.test(ex.message) ? ex.message : "Could not read the screenshot. Please paste the text.";
+      shotError.hidden = false;
     }
   });
 

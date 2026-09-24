@@ -44,6 +44,16 @@ BARE_TLDS = {
     "cc", "co", "io", "me", "ly", "gl", "gd", "at", "ee", "to", "ws", "pw", "tk", "ml", "ga", "cf", "gq",
     "xyz", "top", "info", "biz", "shop", "store", "site", "online", "app", "link", "click", "vip", "live",
     "club", "icu", "asia", "buzz", "fun", "life", "today", "support", "help", "services", "cloud", "page",
+    # cheap TLDs common in phishing (docs/qa/bugs.md BUG-002)
+    "sbs", "cyou", "bond", "cfd", "ru", "work", "pro", "lol", "win", "rest", "quest", "mom", "zip", "mov",
+    "one", "tech", "website", "space", "ltd", "xin", "ink", "wang", "red", "kim", "men", "loan", "cam",
+}
+# Any other TLD still counts for a bare domain when it looks like a link: a path after it, a hyphen in the
+# name, or a marketplace brand in the name. File names ("photo.jpg", "invoice.pdf") never count.
+FILE_EXTS = {
+    "jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp", "svg", "pdf", "txt", "doc", "docx", "xls", "xlsx",
+    "ppt", "pptx", "csv", "mp3", "mp4", "m4a", "wav", "avi", "mkv", "html", "htm", "js", "py", "exe", "apk",
+    "rar", "7z", "gz", "json", "xml",
 }
 
 # Homoglyphs folded to the Latin letter they imitate (Cyrillic / Greek / IPA), plus digit look-alikes.
@@ -88,6 +98,17 @@ def _prep(text: str) -> str:
     return unicodedata.normalize("NFKC", text).translate(_DOTS)
 
 
+def _linky_bare(host: str, whole: str, tld: str) -> bool:
+    """Bare domain with a TLD not in BARE_TLDS (e.g. .sbs-style new TLDs we have not listed yet)."""
+    if tld in FILE_EXTS:
+        return False
+    if len(whole) > len(host):  # has a path or port
+        return True
+    name, raw_tld = host.rsplit(".", 1)
+    name = skeleton(name)  # without a path the TLD must be lowercase, so "Anne-Marie.Lee" is not a link
+    return raw_tld.islower() and ("-" in name or any(b in name for b in OFFICIAL_DOMAINS))
+
+
 def extract_urls(text: str) -> list[str]:
     """Links in order of appearance, de-duplicated. Emails are not links."""
     work = _prep(text)
@@ -97,7 +118,7 @@ def extract_urls(text: str) -> list[str]:
     masked = _SCHEME_RE.sub(lambda m: " " * len(m.group(0)), work)
     for m in _BARE_RE.finditer(masked):
         tld = m.group(1).rsplit(".", 1)[-1].lower()
-        if tld in BARE_TLDS or tld.startswith("xn--"):
+        if tld in BARE_TLDS or tld.startswith("xn--") or _linky_bare(m.group(1), m.group(0), tld):
             found.append((m.start(), m.group(0).rstrip(_TRAILING)))
     seen, out = set(), []
     for _, u in sorted(found):
@@ -203,7 +224,9 @@ def check_url(raw: str) -> UrlInfo:
                              f"Uses the name {label_name} but is not an official {label_name} domain ({reg}).")
                 break
             limit = 2 if len(brand) >= 8 else 1
-            if abs(len(squashed) - len(brand)) <= limit and levenshtein(squashed, brand) <= limit:
+            # whole label, then each "-" / "_" part: "shoppee-tw" -> "shoppee" (typo + country suffix, BUG-004)
+            parts = [squashed] + [p for p in re.split(r"[-_]", sk) if len(p) >= 4]
+            if any(abs(len(p) - len(brand)) <= limit and levenshtein(p, brand) <= limit for p in parts):
                 brand_hit = (brand, "lookalike_domain",
                              f"Looks like {label_name} with letters changed ({reg}); not an official domain.")
                 break

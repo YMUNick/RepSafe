@@ -72,6 +72,15 @@ def injection_flags(text: str) -> list[dict]:
     return out
 
 
+def gemini_injection_flag(text: str) -> dict:
+    """Gemini said injection_detected=true but the code guard found nothing (BUG-001). Typical injection effect:
+    the model was talked out of listing flags but still set the boolean. Never amber on that: quote the first
+    sentence of the message (it is in the message, so F7 holds) and say why."""
+    first = next((m.group(0).strip() for m in _SENTENCE.finditer(text) if m.group(0).strip()), text.strip())
+    return dict(quote=first[:200], code="prompt_injection", tool="gemini",
+                reason="The checker found text in this message that tries to give it orders. Real buyers don't.")
+
+
 def validate_judge(data: dict, text: str) -> tuple[dict, int]:
     """Shape check of the judge output + keep only quotes that really are in the message.
     Returns (clean output, dropped quote count). Raises ValueError when the output is unusable."""
@@ -168,6 +177,8 @@ def analyze(text: str, settings: Settings, reputation: rep.UrlReputation, limite
                                           reason=f"Listed by Google Web Risk as {', '.join(r.threats)}."))
             if judged:
                 flags.extend(judged["red_flags"])
+                if judged["injection_detected"] and not any(f["code"] == "prompt_injection" for f in flags):
+                    flags.append(gemini_injection_flag(text))
     except Exception as e:  # noqa: BLE001 - never 500 and never amber on a bug
         problems.append("internal_error")
         log.error(json.dumps({"event": "analyze_bug", "request_id": rid, "error": type(e).__name__}))

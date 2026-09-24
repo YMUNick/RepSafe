@@ -27,11 +27,13 @@ copy .env.example .env            # macOS/Linux：cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+- 前端頁面：http://127.0.0.1:8000/
 - 健康檢查（也用來暖機）：http://127.0.0.1:8000/health
 - 手動測試分析 API：http://127.0.0.1:8000/api/docs → `POST /api/analyze`，body 為 `{"text": "..."}`
 - 跑測試：`pytest -q`（測試期間會封鎖對外連線，任何開連結的行為都會讓測試失敗）
+- 離線評測：`python scripts/run_eval.py --offline --edge`（不帶 `--offline` 時會用真 Gemini；沒設定 `GOOGLE_CLOUD_PROJECT` 會直接報錯結束，不會跑出整排灰卡）
 - 接真的 Gemini 和 Web Risk：先執行 `gcloud auth application-default login`，再在 `.env` 設定 `AGENT_MODE=gemini`、`URL_REPUTATION_BACKEND=webrisk`、`GOOGLE_CLOUD_PROJECT`。整個專案不使用 API key。
-- 截圖輸入：`SCREENSHOT_ENABLED=true` 才會開啟，預設關閉（待老闆拍板，見 `docs/prd.md` 第 11 節）
+- 截圖輸入：預設開啟（老闆 2026-09-24 拍板）；離線模式回固定範例文字，不呼叫 GCP。設 `SCREENSHOT_ENABLED=false` 可關閉
 - 真實截圖只能放在 `data/real_cases/`（已被 git 忽略），並且要先取得書面同意、打碼
 
 ## 文件索引

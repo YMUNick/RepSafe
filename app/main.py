@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.analyze import RateLimiter, analyze
@@ -18,6 +20,7 @@ from app.tools.url_reputation import make_reputation
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 log = logging.getLogger("repsafe.api")
+INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 
 settings = get_settings()
 reputation = make_reputation(settings)
@@ -35,6 +38,14 @@ class AnalyzeIn(BaseModel):
 class ImageIn(BaseModel):
     image_base64: str
     mime_type: str
+
+
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    """Single-file front end (docs/design/ui-spec.md). No-cache so a redeploy shows up right away."""
+    return FileResponse(INDEX_HTML, media_type="text/html",
+                        headers={"Cache-Control": "no-cache", "Referrer-Policy": "no-referrer",
+                                 "X-Content-Type-Options": "nosniff"})
 
 
 @app.get("/health")

@@ -81,7 +81,7 @@ Cloud Run 單一服務：FastAPI（app/main.py），最小實例 0
 
 ## 6. 截圖輸入開關與工時估算（回答 PRD 第 11 節）
 
-- 開關：`SCREENSHOT_ENABLED=false`（預設關閉）。關閉時 `/api/extract-text` 這條路由根本不存在（404），`/api/config` 會回 `screenshot_enabled:false`，前端就不顯示上傳按鈕。
+- 開關：`SCREENSHOT_ENABLED`，**預設開啟**（老闆 2026-09-24 拍板做截圖）。離線模式（`AGENT_MODE=offline_fixture`）不呼叫 GCP，回固定範例文字；設成 `false` 時 `/api/extract-text` 這條路由根本不存在（404），`/api/config` 會回 `screenshot_enabled:false`，前端就不顯示上傳按鈕。
 - 設計：截圖只讀文字，讀出來的文字回給前端讓賣家確認，**再送 `/api/analyze`**。原因是 Gemini 讀截圖時可能把改字網域「修正」回正確網址，讓賣家看一眼就能補救。
 - 限制：只接受 png、jpeg、webp、heic、heif，大小 ≤ 10MB，圖片不存也不記錄。
 - 要完全拔掉：刪除 `app/screenshot.py`，再刪掉 `app/main.py` 裡 `if settings.screenshot_enabled:` 那一段，其他模組都沒有引用它。

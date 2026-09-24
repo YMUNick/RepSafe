@@ -22,9 +22,16 @@ def test_health(client):
     assert client.get("/health").json() == {"status": "ok", "mode": "offline_fixture", "url_reputation": "fixture"}
 
 
-def test_config_labels_offline_and_screenshot_off(client):
+def test_index_page_served_without_keys(client):
+    r = client.get("/")
+    assert r.status_code == 200 and r.headers["content-type"].startswith("text/html")
+    assert "RepSafe" in r.text and r.headers["cache-control"] == "no-cache"
+    assert "key=" not in r.text and "AIza" not in r.text  # no API key in the front end
+
+
+def test_config_labels_offline_and_screenshot_on(client):
     cfg = client.get("/api/config").json()
-    assert cfg["offline_fixture"] is True and cfg["screenshot_enabled"] is False
+    assert cfg["offline_fixture"] is True and cfg["screenshot_enabled"] is True
 
 
 def test_scam_is_red_with_steps(client):
@@ -44,8 +51,11 @@ def test_empty_and_too_long_rejected(client):
     assert client.post("/api/analyze", json={"text": "a" * 5001}).status_code == 400
 
 
-def test_screenshot_route_absent_when_disabled(client):
-    assert client.post("/api/extract-text", json={"image_base64": "", "mime_type": "image/png"}).status_code == 404
+def test_screenshot_route_offline_needs_no_gcp(client):
+    img = base64.b64encode(b"fake png bytes").decode()
+    r = client.post("/api/extract-text", json={"image_base64": img, "mime_type": "image/png"})
+    assert r.status_code == 200 and r.json()["mode"] == "offline_fixture" and r.json()["text"]
+    assert client.post("/api/extract-text", json={"image_base64": img, "mime_type": "image/gif"}).status_code == 400
 
 
 def test_logs_never_contain_message(client, caplog):

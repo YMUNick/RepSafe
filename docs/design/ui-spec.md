@@ -5,6 +5,8 @@
 - 建立：2026-09-24，Dana（設計）
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`、`docs/prd.md`（第 5–8 節）、`docs/engineering/architecture.md`、`app/main.py`、`app/analyze.py`、`app/verdict.py`
 - 搭配：`docs/design/storyboard.md`（3 分鐘影片分鏡）
+- 2026-09-24 同步老闆拍板：截圖上傳納入 MVP、開關預設開啟，輸入區以「文字＋截圖」為主版本（第 3 節）。
+- 2026-09-24 老闆再拍板：**前端要做截圖預覽**（推翻本文件原本「不預覽」的決定，和 PRD 第 11 節前端工時「含截圖上傳、預覽、文字確認」一致）。規格見第 3.1 節。
 - 實作：`app/static/index.html`（單檔靜態頁，純 HTML/CSS/JS，沒有建置步驟、沒有外部請求、沒有 API key）。**要讓它能開，Eddie 要先加第 9 節的掛載程式碼。**
 - 沒有 Figma，這份文件就是設計稿。token、尺寸、文案都寫死在這裡；**英文文案是定稿，要改請先改這份文件，再改 `index.html`**。
 - 只有一套淺色主題（白底），不做深色模式。刻意和 LineSleuth 的深色＋琥珀做出區隔。
@@ -25,7 +27,10 @@
 │ RepSafe  Reply safe. Keep... │  品牌列（沒有 logo 圖、沒有選單）
 │ [Offline test mode ...]      │  只在 offline_fixture 時出現
 ├──────────────────────────────┤
-│ [ Paste text | Upload shot ] │  只在 screenshot_enabled=true 時出現（第 3 節）
+│ [ Paste text | Upload shot ] │  主版本預設出現（screenshot_enabled=true）；開關關閉時隱藏（第 3 節）
+│ ┌────┐ chat.png              │  截圖預覽（選了截圖才出現，兩個分頁都看得到，第 3.1 節）
+│ │縮圖│ 1.2 MB. Preview stays…│
+│ └────┘ [Change] [Remove]     │
 │ Buyer's message              │
 │ ┌──────────────────────────┐ │
 │ │ Paste the buyer's        │ │  textarea，最小高度 160px
@@ -125,26 +130,71 @@
 - **紅旗清單裡來自連結的原句（工具是 `domain_check` 或 `url_reputation`）用等寬字**，讓 `shopee-tw`、`xn--` 這類差一個字元的網址看得清楚。
 - 字級：品牌 22px/800；判定卡標題 20px/700；卡片標題 16px/700；正文 16px；說明 14px；小字、標籤 13px；步驟副標 11px（只放在步驟格這種不重要的輔助資訊）。
 
-## 3. 輸入區（兩種版本，由開關決定）
+## 3. 輸入區（主版本：文字＋截圖）
 
-截圖上傳是否進 MVP **待老闆拍板**（PRD 第 11 節、architecture E1）。前端兩種版本都做好了，由後端開關決定：
+**已決定（2026-09-24 老闆拍板）：截圖上傳納入 MVP，開關預設開啟**（PRD 第 5、11 節，F1）。以「文字＋截圖」為主版本；「只有貼文字」降為開關關閉時的備用版本（例如 10/4 對帳時截圖工作超支、老闆決定關掉，見 PRD 第 11 節）。前端兩種版本都已經做好，由後端開關決定，切換不用改前端：
 
-| | 版本 A：只有貼文字（預設） | 版本 B：文字＋截圖 |
+| | **主版本：文字＋截圖（預設）** | 備用版本：只有貼文字 |
 |---|---|---|
-| 開關 | `SCREENSHOT_ENABLED=false` | `SCREENSHOT_ENABLED=true` |
-| 前端怎麼知道 | 開頁時呼叫 `GET /api/config`，`screenshot_enabled:false` | 同左，`screenshot_enabled:true` |
-| 畫面 | 沒有分頁切換，只有 textarea | textarea 上方多一個分頁切換 `Paste text` ／ `Upload screenshot` |
-| `/api/extract-text` | 不存在（404），前端不會呼叫 | 存在 |
+| 開關 | `SCREENSHOT_ENABLED=true` | `SCREENSHOT_ENABLED=false` |
+| 前端怎麼知道 | 開頁時呼叫 `GET /api/config`，`screenshot_enabled:true` | 同左，`screenshot_enabled:false` |
+| 畫面 | textarea 上方有分頁切換 `Paste text` ／ `Upload screenshot`，預設停在 `Paste text` | 沒有分頁切換，只有 textarea |
+| `/api/extract-text` | 存在 | 不存在（404），前端不會呼叫 |
 
-- `/api/config` 呼叫失敗時，前端照版本 A 顯示（保守做法：不顯示上傳按鈕）。
+- 預設分頁停在 `Paste text`：截圖讀完也會切回這個分頁讓賣家確認，兩條路最後都落在同一個 `Check message`，操作只有一種收尾。
+- `/api/config` 呼叫失敗時，前端照備用版本顯示（保守做法：不顯示上傳按鈕，貼文字仍然能用）。
 
-### 版本 B 的截圖流程
+### 主版本的截圖流程
 
 1. 點 `Upload screenshot` 分頁 → 虛線框裡只有一個按鈕 `Choose screenshot`，上面寫 `We only read the text in your screenshot.`，下面寫格式與大小限制。
-2. 選好圖片 → 前端先檢查大小（超過 `max_image_mb` 直接擋，不上傳）→ 顯示 `Reading text from your screenshot…` → `POST /api/extract-text`。
-3. 成功 → **自動切回 `Paste text` 分頁**，把讀出來的文字填進 textarea，下方出現提示 `Text read from your screenshot. Check it, especially the links, then tap Check message.`。**不會自動送出**：Eddie 的設計是讓賣家先看一眼讀出來的文字（Gemini 可能把改字網域「修正」回正確網址）。
-4. 失敗 → 分頁內顯示後端的 `detail` 文字（後端的錯誤訊息都已經是英文、可以直接給使用者看），網路錯誤則顯示 `Could not read the screenshot. Please paste the text.`。
-5. 圖片不預覽、不保留在頁面上（少一個元件，也少一個隱私疑慮）。
+2. 選好圖片 → 前端先檢查格式與大小（格式不在白名單或超過 `max_image_mb` 直接擋：不預覽、不上傳，錯誤文案見第 6.2 節）→ 通過就**立刻顯示預覽**（第 3.1 節）→ 顯示 `Reading text from your screenshot…` → `POST /api/extract-text`。
+3. 成功 → **自動切回 `Paste text` 分頁**，把讀出來的文字填進 textarea，下方出現提示 `Text read from your screenshot. Check it, especially the links, then tap Check message.`。預覽留在 textarea 上方，賣家可以點縮圖放大，**對照原圖檢查連結**。**不會自動送出**：Eddie 的設計是讓賣家先看一眼讀出來的文字（Gemini 可能把改字網域「修正」回正確網址）。
+4. 失敗 → 分頁內顯示後端的 `detail` 文字（後端的錯誤訊息都已經是英文、可以直接給使用者看），網路錯誤則顯示 `Could not read the screenshot. Please paste the text.`。預覽保留，賣家可以按 `Change` 換一張或 `Remove` 移除。
+5. ~~圖片不預覽、不保留在頁面上（少一個元件，也少一個隱私疑慮）。~~ **已被 2026-09-24 老闆拍板推翻**：改成只在瀏覽器本機預覽。原本擔心的隱私疑慮用第 3.1 節的規則處理（object URL、不另外上傳、不存、換圖／清除就釋放）；多出來的元件換到的是「讀出的文字可以和原圖對照」，這正是確認步驟需要的。
+
+### 3.1 截圖預覽（2026-09-24 拍板新增）
+
+**位置**：分頁切換下方、兩個分頁共用的一塊（`#shot-preview`）。選了截圖才出現，切到 `Paste text` 也還在，讓賣家邊看圖邊確認文字。開關關閉（備用版本）時永遠不會出現。
+
+**外觀**：`--color-surface` 底、1px `--color-border` 外框、`--radius-md` 圓角、內距 12px。
+
+| 元件 | 規格 |
+|---|---|
+| 縮圖 | **72×72px**，`object-fit: cover`、`object-position: top`（聊天截圖是長圖，從頂端裁），1px `--color-border-strong` 框、`--radius-sm`。縮圖本身是按鈕：點一下在下方展開**大圖**（滿寬、最高 `70vh`、`object-fit: contain`），再點收合；展開時縮圖框變 2px 深墨色 |
+| 檔名 | 14px／600，單行，過長用省略號。用 `textContent` 顯示 |
+| 說明 | 13px 淡字：`{size}. Preview stays on this device.`（`{size}` 例如 `1.2 MB`、`840 KB`） |
+| 按鈕 | `Change`、`Remove`，次要按鈕樣式縮小版（高 40px、14px 字）。**不用紅色**（紅色不能用在按鈕，第 2 節）。`Change` 直接打開選檔；`Remove` 只移除圖片 |
+
+**行為**
+
+- `Change`：選新圖 → 走完整流程（檢查 → 新預覽 → 重新讀文字 → 覆蓋 textarea）。新圖被格式／大小擋下時，**舊預覽維持原狀**，只顯示錯誤。
+- `Remove`：移除預覽與讀取中／錯誤訊息，**不清掉 textarea 的文字**（賣家可能已經改過）；要全部清空按 `Clear`。
+- `Clear`：清文字、清結果，**也一併移除預覽**。
+- 讀取途中換圖或移除：舊圖的讀取結果直接丟棄，不會填進 textarea。
+- 選檔、格式錯、大小錯時，自動切到 `Upload screenshot` 分頁，讓讀取狀態和錯誤訊息看得到。
+
+**瀏覽器無法顯示的格式（HEIC／HEIF 等）**
+
+- Chrome、Firefox 桌機版通常不能顯示 HEIC（iPhone Safari 可以）。前端不猜，**圖片載入失敗（`onerror`）就改顯示替代框**：同樣 72×72，裡面是線條圖片圖示（inline SVG，不對外請求）＋副檔名大寫（例如 `HEIC`）。
+- 說明改成：`{size}. This browser can't show {EXT} images, but we can still read the text.`
+- 大圖不能展開（替代框不是按鈕），`Change`／`Remove` 照常可用。讀文字照常送後端（後端接受 HEIC）。
+
+**隱私（必守）**
+
+1. 預覽只用 `URL.createObjectURL(file)` 在瀏覽器本機顯示，**不另外上傳**（唯一的上傳就是原本的 `/api/extract-text`），**不存 `localStorage`／`sessionStorage`／IndexedDB**、不轉成 data URL 放進 DOM。
+2. 換圖、`Remove`、`Clear`、離開頁面（`pagehide`）時一律 `URL.revokeObjectURL()`，並移除 `<img>` 的 `src`。
+3. 隱私小字 `We never open the links you paste, and we don't save your messages.` 不用改：截圖也沒有被保存。
+
+**無障礙**
+
+| 元素 | 設定 |
+|---|---|
+| 縮圖按鈕 | `aria-label="Show screenshot larger"`／展開後 `Hide larger screenshot`，`aria-expanded`、`aria-controls` 指向大圖區；裡面的 `<img alt="">`（按鈕已經有名字，不重複念） |
+| 大圖 | `alt="Your screenshot, full size"`（內容無法預先描述，讀出來的文字就在 textarea，螢幕閱讀器使用者以文字為準） |
+| 替代框 | `role="img"`、`aria-label="Screenshot file, no preview"`，圖示 `aria-hidden` |
+| 按鈕 | `aria-label="Change screenshot"`／`Remove screenshot`（包含畫面上的字，符合 label-in-name） |
+| 焦點 | `Remove` 後焦點回到目前分頁的輸入（textarea 或選檔） |
+| 錯誤 | 沿用 `#shot-error`（`role="alert"`），讀取中沿用 `#shot-status`（`role="status"`） |
 
 **文案紅線**：介面、影片、pitch 任何地方都**不能**出現 "detect fake screenshots"、"verify payment proof"、"fake transfer" 這類字眼。截圖只讀文字。
 
@@ -223,7 +273,7 @@
 | `<title>` | `RepSafe: Reply safe. Keep your rep.` |
 | 品牌列 | `RepSafe` ／ `Reply safe. Keep your rep.` |
 | 離線提示 | **`Offline test mode.`** `Results come from simple keyword rules, not Gemini. Don't rely on them.` |
-| 分頁（版本 B） | `Paste text` ／ `Upload screenshot` |
+| 分頁（主版本） | `Paste text` ／ `Upload screenshot` |
 | 輸入欄標籤 | `Buyer's message` |
 | placeholder | `Paste the buyer's message here. The whole chat is fine.` |
 | 輸入欄左下 | `Checked before you reply.` |
@@ -233,6 +283,11 @@
 | 截圖限制 | `PNG, JPG, WebP or HEIC, up to {max_image_mb} MB` |
 | 截圖讀取中 | `Reading text from your screenshot…` |
 | 截圖讀完 | `Text read from your screenshot. Check it, especially the links, then tap Check message.` |
+| 預覽說明 | `{size}. Preview stays on this device.` |
+| 預覽說明（無法顯示） | `{size}. This browser can't show {EXT} images, but we can still read the text.` |
+| 預覽按鈕 | `Change` ／ `Remove`（aria-label：`Change screenshot` ／ `Remove screenshot`） |
+| 縮圖按鈕（aria-label） | `Show screenshot larger` ／ `Hide larger screenshot` |
+| 大圖 alt | `Your screenshot, full size` |
 | 主按鈕 | `Check message` ／ 讀取中 `Checking…`（加旋轉圈、disabled） |
 | 次按鈕 | `Clear` |
 | 隱私小字 | `We never open the links you paste, and we don't save your messages.` |
@@ -257,7 +312,8 @@
 | 超過字數上限 | `Message is longer than {max} characters. Paste only the buyer's recent messages.` | 前端先擋 |
 | 後端回 400 | 直接顯示 `detail` | `app/main.py` |
 | 後端回 422 | `Please check the message and try again.` | FastAPI 驗證錯誤 |
-| 截圖超過大小 | `Image is larger than {max_image_mb} MB.` | 前端先擋（和後端同一句） |
+| 截圖超過大小 | `Image is larger than {max_image_mb} MB.` | 前端先擋（和後端同一句），顯示在截圖分頁 |
+| 截圖格式不支援 | `This file type isn't supported. Use PNG, JPG, WebP or HEIC.` | 前端先擋（白名單和 `app/screenshot.py` 的 `ALLOWED_MIME` 相同），顯示在截圖分頁 |
 
 - 主按鈕**不做成 disabled** 來擋空輸入：按了沒反應的按鈕比一行錯誤訊息更難懂。
 - 使用者一開始打字，錯誤訊息就消失。
@@ -323,8 +379,11 @@
 | 灰（後端回灰） | 恢復 | 最終狀態（有 `Didn't finish`／`Without Gemini`） | 灰卡＋原因＋ Try again → Safe reply（固定範本） |
 | 灰（連不到） | 恢復 | 2–4 格 `Didn't finish` | 灰卡＋ `Couldn't reach RepSafe…` ＋ Try again（**沒有** Safe reply） |
 | 離線模式 | — | — | 頁首灰色提示條常駐 |
-| 截圖讀取中（版本 B） | 分頁內 `Reading text…` | 不動 | 不動 |
-| 截圖失敗（版本 B） | 分頁內紅字 | 不動 | 不動 |
+| 截圖讀取中（主版本） | 預覽出現＋分頁內 `Reading text…` | 不動 | 不動 |
+| 截圖讀完（主版本） | 切回文字分頁，預覽留在 textarea 上方 | 不動 | 不動 |
+| 截圖失敗（主版本） | 預覽保留＋分頁內紅字 | 不動 | 不動 |
+| 截圖被擋（格式／大小） | 分頁內紅字，不產生新預覽（舊預覽不動） | 不動 | 不動 |
+| 瀏覽器無法顯示（HEIC） | 預覽改成圖示＋副檔名＋說明 | 不動 | 不動 |
 
 ## 8. 欄位與 API JSON 對照
 
@@ -356,7 +415,7 @@
 | `links[]` | **MVP 不顯示** | 之後如果要做「連結清單」再用 |
 | `request_id`、`mode`、`latency_ms` | 不顯示 | `latency_ms` 可以在錄影片時從 DevTools 看 |
 
-### `POST /api/extract-text` `{ "image_base64": "data:...", "mime_type": "image/png" }`（只有版本 B）
+### `POST /api/extract-text` `{ "image_base64": "data:...", "mime_type": "image/png" }`（主版本；開關關閉時不存在）
 
 | 回應 | 前端處理 |
 |---|---|
@@ -403,14 +462,21 @@ def index() -> FileResponse:
 - [ ] 畫面上任何地方都沒有綠色判定、沒有 "safe" 當判定、沒有「偵測偽造截圖」相關字眼。
 - [ ] 離線模式時頁首一定有提示條；**錄影片前確認提示條沒有出現**（出現代表還在離線模式）。
 - [ ] 開啟系統「減少動態效果」後，步驟直接顯示結果、沒有轉圈。
+- [ ] 首頁看得到 `Paste text`／`Upload screenshot` 分頁（開關已開）；iPhone Safari 選相簿截圖、Android Chrome 各上傳一次，讀完會切回文字分頁並出現確認提示，**不會自動送出**。
+- [ ] 上傳含改字網域的截圖，讀出來的網址和原圖一字不差；如果被「修正」，確認提示有讓人注意到連結。
+- [ ] 截圖預覽：縮圖出現、點縮圖可放大／收合；`Change` 換圖後文字被新圖覆蓋；`Remove` 只移除圖、文字還在；`Clear` 圖文都清掉。
+- [ ] Chrome 桌機上傳 HEIC：顯示圖示＋ `HEIC`＋替代說明，文字照常讀出。iPhone Safari 上傳 HEIC 顯示真正的縮圖。
+- [ ] 上傳 `.gif`／`.pdf` 或超過大小的檔案：出現第 6.2 節錯誤、沒有預覽、DevTools Network **沒有**送出 `/api/extract-text`。
+- [ ] DevTools Network 裡除了 `/api/extract-text` 沒有任何和圖片有關的請求（預覽是 `blob:` 本機網址）；Application 分頁的 Local/Session Storage 是空的。
 
 ## 11. 工時（前端 4 小時預算）
 
 | 項目 | 估計 | 狀態 |
 |---|---|---|
-| 單檔頁面（版本 A＋B、三態、步驟、複製） | — | Dana 已寫好初版 `app/static/index.html` |
+| 單檔頁面（主版本＋備用版本、三態、步驟、複製） | — | Dana 已寫好初版 `app/static/index.html` |
 | Eddie 加 `/` 路由與測試 | 待估算（應該很少） | 待做 |
 | 接上真的 Gemini 後調整文案、實機驗收（第 10 節） | 待估算 | 10/6 起 |
-| 版本 B 截圖上傳的實機測試（10MB、HEIC、iPhone） | 包含在 architecture 第 6 節的 2–3 小時裡 | 看老闆是否開啟 |
+| 截圖上傳的實機測試（10MB、HEIC、iPhone） | 包含在 architecture 第 6 節的 2–3 小時裡 | 必做（2026-09-24 拍板開啟），10/6 起 |
+| 截圖預覽（第 3.1 節） | 包含在前端 4 小時裡（PRD 第 11 節） | Dana 已寫進 `index.html`（2026-09-24），待實機驗收 |
 
 初版已經寫好，前端 4 小時的預算應該會有剩，剩多少**待估算**（要看老闆實際讀程式、驗收花多少時間）。剩下的時間建議還給「找賣家」。
