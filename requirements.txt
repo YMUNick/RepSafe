@@ -1,0 +1,6 @@
+# Runtime dependencies (Cloud Run image installs only this file)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+google-genai>=1.30
+google-cloud-webrisk>=1.12
+python-dotenv>=1.0

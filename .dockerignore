@@ -1,0 +1,13 @@
+.venv
+.env
+.env.*
+**/__pycache__
+.pytest_cache
+docs
+tests
+data
+*.md
+*.pem
+*.key
+*credentials*.json
+*service-account*.json

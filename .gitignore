@@ -1,0 +1,33 @@
+# ---- secrets: never commit ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*credentials*.json
+*service-account*.json
+*-sa-key*.json
+application_default_credentials.json
+
+# ---- real seller data: never commit (written consent covers our use, not a public repo) ----
+# Real screenshots / chats go here only after written consent and redaction (docs/prd.md section 8).
+data/real_cases/
+data/private/
+eval/results/
+
+# ---- Python ----
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---- local team-meeting tooling: not part of the product ----
+.claude/
+.agents/
