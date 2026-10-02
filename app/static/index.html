@@ -207,6 +207,8 @@ footer { margin-top: var(--space-6); font-size: var(--fs-xs); color: var(--color
     </div>
   </header>
 
+  <a class="sample" id="finshield-entry" href="/finshield" hidden>FIN-SHIELD · Synthetic investigation workspace →</a>
+
   <div class="offline" id="offline" role="note" hidden>
     <strong>Offline test mode.</strong> Results come from simple keyword rules, not Gemini. Don't rely on them.
   </div>
@@ -346,6 +348,7 @@ footer { margin-top: var(--space-6); font-size: var(--fs-xs); color: var(--color
   fetch("/api/config").then((r) => (r.ok ? r.json() : null)).then((c) => {
     if (!c) return;
     cfg = Object.assign(cfg, c);
+    $("finshield-entry").hidden = !(cfg.finshield_enabled === true);
     $("offline").hidden = !cfg.offline_fixture;
     $("tabs").hidden = !cfg.screenshot_enabled;
     $("shot-limit").textContent = `PNG, JPG, WebP or HEIC, up to ${cfg.max_image_mb} MB`;

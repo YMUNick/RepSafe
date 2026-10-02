@@ -31,3 +31,6 @@ Thumbs.db
 # ---- local team-meeting tooling: not part of the product ----
 .claude/
 .agents/
+.codex/
+.superpowers/
+.vercel/

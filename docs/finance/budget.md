@@ -1,4 +1,137 @@
-# RepSafe 預算、成本防線與工時記帳
+# RepSafe／FIN-SHIELD 預算、成本防線與工時記帳
+
+更新：2026-10-02，Felix（財務）。本次適用範圍：Vercel 部署、既有 GCP／Vertex AI 與 Firestore；下方折疊區保留 9/24–9/25 歷史紀錄。使用者現已授權平行實作、中英 GitHub 文件及 Vercel 部署；不再沿用舊計畫「僅規劃」的限制。本文件交付成本規則與部署檢查表，並不宣稱已核帳、已設定雲端限制或已通過線上驗證。
+
+## 本次摘要／Executive summary
+
+**中文：USD 100 是整個 RepSafe／FIN-SHIELD 專案累計總上限，包含先前支出與此次 Vercel、GCP、Vertex AI、Firestore，並非新增預算或目前餘額。**已支出、可用餘額、帳單幣別與匯率均未核對；不預填實際費用、時薪或工時。50%／90%／100% 是規劃中的警示門檻，警示不是硬性扣款上限。新增模型呼叫總額度預設為 0；付費模型入口須先具備持久化全域限制。原 25 小時總限與核心估算 24–36 人時存在衝突；使用者授權實作，但未指定新的數字工時上限。
+
+**English: USD 100 is the total project ceiling**, including prior spending and all Vercel, existing GCP, Vertex AI, and Firestore costs; it is not a fresh allowance or a verified remaining balance. Actual spend, exchange rates, and hours remain unverified. Percentage alerts are notifications, not a hard spending cap. The default model-call allowance is zero; live AI needs a durable global limit that includes retries. No paid hosting upgrade is assumed. Implementation is authorized, but no replacement numeric hours cap was specified: the previous 25-hour total conflicts with the 24–36 person-hour core estimate. An `offline_fixture` demonstrates synthetic workflow only and cannot establish real Gemini usage or G1 completion.
+
+## A. 總預算口徑與待核對欄位
+
+| 項目 | 本次口徑／狀態 |
+|---|---|
+| 專案累計總額 | **USD 100**；跨供應商、跨部署、跨月份累計。不能替 Vercel 和 GCP 各開一份 USD 100 額度 |
+| 已支出 | **未核對**；包含歷史部署、模型測試與儲存，不填 0 |
+| 可用餘額 | **未核對**；須扣已支出、在途呼叫及保留成本，不填 USD 100 |
+| 帳單幣別、匯率、換算日期與來源 | **未核對**；每家帳單按其實際幣別記錄，不能把 USD 100 當 SGD 100；舊文「約 75 USD」不是換算依據 |
+| Vercel 帳戶方案、GCP 抵免額／免費用量 | **未核對**；不預設有付費方案、試用、credits 或足夠免費額度 |
+| 線上警示、配額、呼叫限制與關閉入口證據 | **待 Controller／Eddie／Quinn 驗證**；本次只核對公開官方文件，沒有讀取帳單或修改帳戶 |
+| 真實 token、調查輪次、單案費用、回本 | **待實測／待估算**；合成展示或固定回覆不能代替付費用量與付費意願證據 |
+| 累計人時、剩餘人時 | **未核對**；公開 [timesheet.csv](timesheet.csv) 格式與既有記錄保持不動 |
+
+### A1. Controller 最新狀態（2026-10-02 回報）
+
+- 既有 GCP 專案已確認 **ACTIVE**；已啟用 Firestore、IAM Credentials、STS，並建立第一個 `(default)` Native／Standard 資料庫於新加坡，建立回覆為 `freeTier: true`。另以三個合成案件完成兩程序、16 項持久化檢查；中途曾有未釐清的間歇無法存取，見 QA 紀錄。這不代表 Vercel 存取或真模型已驗證，也不保證超出免費用量後零費用；公開文件不重列專案 ID。
+- Vercel CLI **62** 已安裝，使用者登入仍待完成；**未選擇 Vercel 付費方案，本輪未呼叫模型**。這不是歷史支出為 0 或免費額度足夠的證據。
+- Controller 正在加入原生 FastAPI 的 Vercel **Python 3.12** 部署設定：區域 **sin1**、函式上限 **60 秒**。圖片 API 使用 **base64 JSON**，Controller 已更正 Vercel 環境為原始圖片 `MAX_IMAGE_MB=3`（原先回報 4），以容納編碼膨脹與 JSON 在 **4.5 MB request body** 限制內的額外用量；實際邊界仍須驗證。本機既有 **10 MB 預設**保留，UI 依 `/api/config` 顯示適用限制並保留上傳＋預覽流程。這是進行中的部署工作，尚不表示部署成功。Vercel 區域不等同 Firestore 資料庫位置，函式逾時也不保證取消已送出的模型計費。
+- Controller 將同步修正 [部署文件](../engineering/deploy.md) 的 100 SGD 舊權威敘述：本次總額以 **USD 100** 為準，歷史幣別僅作紀錄，**尚無已驗證的換算警示門檻**。已支出／可用餘額、實際帳單幣別與匯率仍未核對。
+
+```text
+可再承諾預算（USD） = max(0, 100 − 已發生費用 − 在途費用預留 − 保留成本)
+保留成本 = 展示期間主機／儲存／網路估算 + 帳單延遲／稅費／匯差緩衝
+```
+
+這是待填公式；任何輸入未知時，結果也標未知，不用 0 代入。已發生費用包含已入帳與估計未入帳部分；在途費用只放尚未包含在前者的請求，避免重複扣除。先按未抵免費用保守估算，核對後另列實付與 credits，不將抵免額解讀成追加預算。實際帳單、個人時薪及查帳資料只留私有紀錄；公開文件不填 billing ID、憑證或私人金額，不要求提供帳單登入憑證。
+
+## B. Vercel＋既有 GCP 成本清單
+
+以下列出本次需追蹤的成本，不填尚未確認之單價或分配額；應按實際方案、資料庫位置、模型與端點核價。**離線模型省去模型呼叫費，線上主機、資料庫與流量仍可能有費用。**
+
+| 成本項目 | 必須納入的用量／防線 |
+|---|---|
+| Vercel | Functions 執行、請求、傳輸／流量、建置及 preview／production 的共同用量；既有方案若有固定費、席次、add-ons 或整合費須另核。禁止以方案升級解決超額；未確認適用性時保留部署限制，不默認訂閱或購買網域 |
+| Vertex AI／Gemini | 每次實際 model attempt 的輸入、可見輸出與 thinking tokens；多輪補查、最後報告、VIP 問答如有模型呼叫，以及應用程式／SDK 重試、人工重跑、測試／評測／錄影都算入 |
+| Firestore | session、案件、事件、冪等結果、全域額度交易的讀／寫／刪、查詢／索引讀取、文件與索引儲存、對 Vercel 的網路傳輸；重試交易、輪詢與 reviewer 操作也要量測 |
+| Firestore 選配功能 | TTL 刪除、備份、PITR、還原如啟用須另計；免費額度是否適用現有資料庫須核對，不能假設新建 named database 也有免費額度 |
+| 既有 Cloud Run／Web Risk | 舊入口仍有的 CPU、記憶體、請求、網路和 API Lookup；Vercel 上線不代表舊服務自動停止或不再計費 |
+| 既有 Cloud Build／Artifact Registry／Cloud Storage／Cloud Logging | 建置、映像檔、來源封存、其他物件與日誌寫入／保存；保留資源仍需列帳。歷史資料保留期限與清理範圍由 Controller 核對，本文件不執行刪除 |
+
+Vercel 官方列 Hobby 為個人、非商業用途的免費方案，超過用量限制可能暫停功能；是否符合本次用途及現有帳戶方案仍待核對，不能因此推定整個專案免費。[Vercel Hobby](https://vercel.com/docs/plans/hobby)。Spend Management 有方案限制，且不涵蓋所有固定費／整合費，更不統管 GCP；本案不為取得此功能自行升級。[Vercel Spend Management](https://vercel.com/docs/spend-management)。
+
+Firestore 官方分別列出操作、儲存與網路費用，TTL／備份等功能及 named database 的免費額度有額外限制。[Firestore pricing](https://cloud.google.com/firestore/pricing)。模型價格按實際 model ID、端點與計費單位查證；本次不沿用歷史 preview 模型單價或其他模型價格。[Vertex AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing)。上述公開規則查證日期為 2026-10-02，並非帳戶設定的驗證日期。
+
+## C. 單案、多輪與全域模型費用
+
+```text
+模型成本（USD） = Σ 每個實際 attempt [輸入 tokens × 輸入單價
+                     + 計費輸出 tokens × 輸出單價] / 1,000,000
+                   + 其他已啟用且另計費的模型功能
+單案增量成本 = 模型成本 + Firestore 操作／儲存／網路 + 主機／其他 API
+本輪剩餘預估 = 待做案例與評測的增量成本 + 尚未計入的部署／保存成本
+```
+
+公式假設單價單位為每百萬 tokens；依實際價目單位換算。計費輸出 tokens 必須涵蓋 thinking tokens，若 SDK 的輸出總數已包含思考則不再重複相加；若分欄回報則分別記錄並按模型計價規則加總。圖片輸入或其他額外費用只在實際使用時列入。每次 attempt 已逐筆加總，不能再乘一次重試率。
+
+私有用量紀錄至少含：操作／attempt 識別、模式與 model ID、端點、時間、用途（開發／評測／錄影／展示）、調查輪次、輸入／可見輸出／思考 tokens、計費輸出定義、應用程式與 SDK 重試次數、耗時、結果與錯誤碼，以及是否缺 usage metadata。只記必要 metadata，不記敏感 prompt、secret 或真實案件資料。
+
+若上游已收到請求，但本機逾時／斷線／回覆解析失敗，不能將成本當 0，也不能自動退還該 attempt 額度。缺 usage metadata 時保留保守預留值並標記待核對；SDK 隱藏重試必須停用或納入逐次額度。受限唯讀工具本身不必然呼叫模型，但其查詢、儲存與後續模型輪次仍可能收費。
+
+在單次 input／output／thinking、輪次、重試、工具輸出長度皆有可驗證上限，且單次成本上界 `C_attempt_max` 已核價時，才能計算：
+
+```text
+可新增模型 attempts = floor(max(0, 可再承諾預算 − 非模型待發生成本) / C_attempt_max)
+```
+
+各成本只扣一次；若非模型成本已包含在 A 節保留成本中，不再重扣。這是換算用的上限公式，**不在此設定正數呼叫額度**。沒有可證明的 token／思考上界或實際單價，就不能把「呼叫 N 次」等同「必在 USD 100 內」。評測、錄影與公開展示共用總額，不各重置一份。
+
+### C1. 付費入口須具備的控制與驗收證據
+
+這些是部署驗收要求，**不是本次文件更新已實作或已通過的功能聲明**。
+
+1. FIN-SHIELD 功能預設關閉，模型呼叫總額度預設為 **0**；明確區分 `FINSHIELD_MODEL_MODE=offline_fixture|gemini` 與舊聊天模式。離線固定結果須標 synthetic／offline，不可算真 agentic AI 或 G1 通過。
+2. 每個付費 attempt **發出之前**，以 Firestore 原子交易保留全域額度，涵蓋所有使用者、案件、重試與部署實例。計數器跨重啟／重新部署仍存在；preview、production 和本機若共用計費範圍，須共用總帳或納入其已分配子額度，子額度合計不得突破總額。
+3. 模型呼叫在額度交易成功後執行，不能放在可能自動重跑的資料庫交易 callback 內。併發只能消耗剩餘額度，冪等重送不能重複執行付費工作；已保留但結果未知的額度不能因 lease 到期就盲目返還。
+4. 缺雲端憑證、資料庫不可用、額度耗盡或預留失敗時 fail closed，停止真模型呼叫並呈現實際失敗／離線狀態。線上 reviewer 與全域額度需持久化，不能靠程序記憶體或 Vercel 本地 SQLite；local fake 僅供測試／開發。
+5. 公開訪客僅獲明標的合成預覽或經限額的授權流程，**不得公開無上限 AI 呼叫**。保留 server-side 案件授權及 reviewer 權限；session／案件新增、輪詢、報告下載也需控量，避免模型為 0 時仍灌高 Firestore／主機費。
+6. 舊 `/api/analyze`、`/api/extract-text` 與 Web Risk 如仍可付費，須納入同一專案成本防線，或由 Controller 保持其付費模式關閉。只限制 FIN-SHIELD 無法保證整個專案總額。關掉模型不等於停止所有儲存與主機費用。
+
+Quinn／Eddie 需提供：預設 0 時無供應商呼叫、併發搶最後一份額度、重送不重扣／不重呼、SDK 重試計數、重啟與跨實例總量不歸零、Firestore 故障時拒絕呼叫的測試。實際模式與旗標名稱以 [部署文件](../engineering/deploy.md) 及實作為準；本文件沒有新增 API 或環境變數契約。
+
+## D. 百分比警示與成本處置
+
+維持 **50%／90%／100%** 作規劃門檻，代表整個專案已核對的累計 USD 50／90／100 等值；實際警示是否已設定仍未知。50／80／90 的歷史替代提案不視為已批准。跨平台彙總須另核對；GCP 警示不會看到 Vercel 支出，月預算重置也不重置專案總額。
+
+| 門檻 | 預定處置（設定與執行結果待 Controller 核對） |
+|---|---|
+| 50% | 核對跨平台支出與預留，重估每案／每輪評測成本；取消非必要重跑 |
+| 90% | 暫停非必要真模型測試與評測；僅在可支應的剩餘額度內安排必要驗證／錄影，否則維持模型額度 0 |
+| 100% 或已知預留不足 | 不再接受新的付費工作；停用相關付費入口，保留明標的合成展示／既有影片；檢查尚在運作的舊服務及持續儲存費。恢復前重核帳，不自動加額 |
+
+**警示不是硬性費用封頂**；通知及帳單用量反映可能延遲，不能等 100% 信件才控量。Google 官方將 alerts-only 與另行配置、服務適用性受限的 spend cap budgets 區分；本案沒有驗證或設定後者，不能宣稱平台替本案封頂。[Cloud Billing budgets](https://cloud.google.com/billing/docs/how-to/budgets)。原子模型額度只限制模型 attempts，不能封頂全部雲端費用；須連同請求控量、保留成本及持續核帳使用。
+
+## E. 工時衝突與實作授權
+
+原 **25 小時**是整個專案總人時上限；舊表「24 小時、餘裕 1 小時」是歷史估算，不能當本次剩餘工時。[核心計畫](../superpowers/plans/2026-10-02-finshield-48h-core.md) Task 1–6 估 **24–36 人時**，已含整合／安全驗收 6–10 人時，不能再重加；含 G0、G2 估 **29–44 人時**，還未涵蓋訪談、中英文件、影片及額外環境／返工。這些都是估算，不是實際記帳。
+
+使用者目前授權所有角色平行實作、文件與部署，但**未指定新的數字工時上限**。此授權允許執行本次工作，不代表已把 25 改成 36 或 44；Controller／Paula 應保留數字衝突、已用／剩餘工時與 LineSleuth 排程待核對。48 小時是日曆窗口，角色平行不會把總人時相除，也不證明尚在原配額內。
+
+實際工時仍由使用者依證據記錄；本次沒有填寫或更動 timesheet，也不把 AI 任務的牆鐘時間當使用者工時。需縮範圍時先精簡影片後製與裝飾，保留必要授權、持久化與安全驗收；不能以刪掉驗收把成本缺口寫成已解決。回本、節省查證時間與付費意願仍待實測，不用比賽獎金或離線示範推估收入。
+
+## F. 部署成本檢查表
+
+由 Controller 彙整證據後勾選；A1 已記錄部分前置進度，以下整項驗收仍未完成，本次文件測試不等同部署放行。
+
+- [ ] 核對 Vercel 實際帳戶方案、Hobby 用途適用性、配額及既有付費項目；不升級方案或開啟付費 add-ons。
+- [ ] 私下核對專案累計 GCP＋Vercel 已支出、幣別、換算來源／日期、credits 及未入帳用量，按 A 節算可再承諾預算。
+- [ ] 確認跨月份的 USD 100 總額追蹤及 50%／90%／100% 警示涵蓋範圍；驗證通知對象及額度耗盡時的處置。
+- [ ] 在 preview／production 確認 FIN-SHIELD 預設關閉、模型額度 0、模式標示正確；舊聊天／截圖／Web Risk 付費入口亦受控。
+- [ ] 完成 Vercel 登入與部署後，驗證 Python 3.12／sin1／60 秒設定、Vercel 原圖 3 MB 經 base64 JSON 後符合 4.5 MB request body 邊界、本機預設 10 MB 保留且 UI 依 `/api/config` 維持上傳＋預覽，以及逾時的付費 attempt 是否保留預留額度；不以 API 啟用或 CLI 安裝代替線上驗證。
+- [ ] 核對既有 Firestore 資料庫、位置與存取權限；量測案例、session、audit、額度交易、輪詢的讀寫，核對索引／保存／網路及選配功能成本。
+- [ ] 取得全域額度原子性、併發、重送、重啟、跨實例與儲存失敗拒絕模型呼叫的測試證據；記憶體 fake 測試不能代替線上持久化驗證。
+- [ ] 如需開啟真 Gemini，先核對具體模型／端點單價與 input／output／thinking／輪次／重試上限，保留每個 attempt 用量並核算正數額度的支出上界。
+- [ ] 排定評測／錄影／展示所需呼叫及共同額度，確認公開入口不接受無限付費請求，且 review 權限與個案範圍仍有效。
+- [ ] 確認 Cloud Run、Artifact Registry、Cloud Storage、Cloud Logging 等舊資源的保留成本；記錄展示截止與後續保存期限，不能假設換主機就停費。
+- [ ] 核對 25 小時總限與 24–36 人時核心估算的缺口、尚未登錄工時及 LineSleuth 衝突；只在私有實際紀錄更新使用者工時。
+- [ ] 在公開 GitHub 中英文件／展示中一致說明 Synthetic、Simulated、offline_fixture 與 Gemini 的差別；不把「財務文件完成」寫成 G1／G2 或正式上線完成。
+
+## 歷史紀錄（2026-09-24–25；不適用本次部署）
+
+以下保留原文供追溯，其中的 100 SGD、過往「已設定」、舊日期／配額／單機公式、待拍板與關停步驟都只描述當時紀錄；不作為本次授權、帳單事實或操作指引。包括「最大實例 1 就是全服務上限」在重啟及 Vercel 跨實例情況均不足以保證全域限額。歷史區內「第 X 節」皆指歷史區自身，不指上方 A–F。
+
+<details>
+<summary>展開原 RepSafe 預算與工時文件（歷史原文）</summary>
 
 - 建立：2026-09-24，Felix（財務）
 - 更新：2026-09-25，Felix：最大實例改成 1（照實際部署）並重算最壞情況；停損線兩案並列（待老闆決定）；成本公式加入 thinking tokens；新增評測成本欄位；新增「目前已花費」欄；工時提醒補記兩場會議。依據 `docs/meetings/2026-09-24-剩餘工作盤點.md`、`docs/engineering/deploy.md`（9/25 更新）
@@ -439,3 +572,5 @@
 | F5 | Vertex AI 的 Gemini 能不能設每日配額 | Vertex AI 配額說明、主控台配額頁 | 第 4.2 節 |
 | F6 | 帳單資料延遲多久才反映到預算警示 | Cloud Billing 預算說明 | 第 3 節檢查一 |
 | F7 | 主辦是否提供 GCP 抵免額、原型要開到哪天 | 主辦回覆（9/30） | 第 1、3、7 節 |
+
+</details>

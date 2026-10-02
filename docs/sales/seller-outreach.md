@@ -1,4 +1,80 @@
-# 賣家案例徵集計畫（9/25–9/29）
+# FIN-SHIELD 分析師／採購訪談與賣家案例範本
+
+2026-10-02 · Sandy · [產品需求](../prd.md) · [英文講稿](../pitch/pitch-script.md) · [來源登錄](data-sources.md)
+
+目前狀態：訪談與邀請範本已備妥，尚未寄送、招募或完成訪談；沒有客戶證言、付費意願或省時數據可引用。主要研究對象為具有錢包／代收付能力之電商平台的風控分析師與風控／營運採購主管；原本的賣家研究保留為受保護者與對話入口的研究，不能代替平台採購證據。
+
+## A. 本輪要驗證的三件事
+
+| 假設 | 對象與最低探索樣本 | 要取得的證據 | 反證也要記 |
+|---|---|---|---|
+| 對話、付款、KYC 與政策間的查證／交接有可改善的負擔 | 2 位平台風控分析師；這是招募目標，不是已訪談人數 | 最近一案的工作順序、現用工具、查證時間定義、補件次數、交接缺口 | 現用工具已足夠、對話不影響決策、不能取得所需資料 |
+| 「對話線索接續案件證據」值得使用 | 同上，用固定合成案比較 | 找到來源所需步驟、引用正確性、正常交易合理解釋是否保留 | 增加查核負擔、錯引、過度相信 AI、正常案誤暫停 |
+| 平台願意承擔試點成本及導入工作 | 1 位風控／營運採購主管 | 預算擁有人、現行支出類型、資料權限、試點條件、付款計價偏好 | 無預算、沒有導入優先級、內建工具已滿足需求 |
+
+採訪前先問現況，之後才展示合成原型。相同案例／相同資訊條件才可比較人工基線與工具流程；不能用熟悉第二次案例造成的速度提升當產品成效。記錄案例順序、是否事先看過、失敗與無結論案件。兩位分析師只能提供探索訊號，不能推出市場比例。
+
+## B. 可直接使用的邀請草稿
+
+以下均為待人工發送範本，不表示已取得受訪者同意。將方括號換成實際資訊；不要求提供客戶資料、真實 KYC、公司機密或私人案件截圖。
+
+### 分析師邀請（中文）
+
+> 您好，我是[姓名]，正在做 RepSafe × FIN-SHIELD 合成原型，研究電商錢包／代收付平台如何從可疑對話查到付款證據、整理資料並交人工覆核。
+>
+> 想邀請您聊 20 分鐘：最近一次案件怎麼查、用哪些工具、什麼時候需要補資料，以及有哪些合理解釋容易漏掉。這不是銷售，也不需要提供客戶身分、交易明細或公司機密；我們可完全用合成案例討論。
+>
+> 錄音及公開匿名引用都會分開徵求同意，拒絕任何一項都不影響訪談。若有興趣，請回覆方便的時段。謝謝。
+
+### Analyst invitation (English)
+
+> Hi [name], I'm [name], working on RepSafe × FIN-SHIELD, a synthetic prototype that connects suspicious seller conversations to evidence review at platforms with wallets or payment collection.
+>
+> Would you be open to a 20-minute conversation about how you investigate a case, request missing information and hand a decision to a reviewer? This is workflow research, not a sales call. We can use fictional cases throughout; please do not share customer identities, KYC documents, transaction records or confidential policies.
+>
+> Recording and any public anonymous quotation would require separate permission. You're welcome to decline either. If interested, please suggest a convenient time. Thank you.
+
+### 採購主管邀請（中文）
+
+> 您好，我是[姓名]。我們在驗證一個協助平台風控分析師整理案件證據的合成原型，想請教您 20 分鐘：團隊如何評估調查工具、誰負責預算、試點必須證明什麼，以及資料與人工覆核有哪些導入要求。
+>
+> 目前沒有定價或省時成效可承諾，也不需要公司機密或客戶資料。希望先理解採購流程與不適合導入的原因；若方便，請回覆可聊的時段。
+
+### Buyer invitation (English)
+
+> Hi [name], we're researching an evidence copilot for risk analysts at e-commerce platforms with wallets or payment collection. Could we ask for 20 minutes about how your team evaluates investigation tools, who owns the budget and what a pilot would need to prove?
+>
+> We have a synthetic prototype, with no validated pricing or time-saving claim. We are seeking workflow and purchasing feedback, including reasons not to adopt it. No confidential company or customer data is needed. Please let me know if there is a convenient time.
+
+## C. 20 分鐘訪談順序
+
+| 時間 | 分析師 | 採購主管 |
+|---|---|---|
+| 0–2 分 | 確認工作角色、記錄同意；不要記可辨識平台客戶的細節 | 確認職責與決策參與程度；不把職稱當預算權 |
+| 2–8 分 | 最近一次案件從哪開始？在哪些系統找對話、交易、KYC、政策？哪些資料根本取不到？ | 最近一次採購這類工具怎麼決定？有哪些內建或替代方案？誰能批准試點與費用？ |
+| 8–12 分 | 從拿到資料到形成可覆核結論花多久？等待補件與主動查證各多久？記估計／實測及時間單位 | 月案件量定義是警報、案件還是付款？目前怎麼衡量查證成本、誤暫停與覆核品質？可拒答 |
+| 12–17 分 | 看兩個合成案：能否找到支持與反對證據？VIP 追問與明確核准有何不同？哪處增加負擔？ | 試點需要哪些存取範圍、資料保存、人工決策與部署條件？固定月費／按案／授權何者合適，為何？ |
+| 17–20 分 | 哪個假設不成立？是否願意用另一組合成案做相同條件比較？確認可否引用原話 | 開放式問願付與不買條件，記原幣／期間／條件；是否願意確認一份試點評估範圍？確認引用權限 |
+
+不先報價、不把「有興趣」當採購承諾。不引導受訪者接受「一定省時」；保留現用工具已滿足需求的答案。未量測就寫「估計」或「未問到」，不能補零或自行換算。範例中的 HOLD 只代表本筆模擬付款。
+
+## D. 私有紀錄與公開輸出
+
+訪談原文、錄音、聯絡方式、同意書、逐案時間與內部流程只存 `data/private/`，例如 `data/private/interviews/` 與 `data/private/consent/`；不進 GitHub、Vercel、公開 issue、影片或合成 demo。公開文件只有空白範本及獲准且無法識別個人的彙總。原始筆記不得貼入本文件。
+
+每份私有紀錄應含：匿名研究編號、日期、角色類型、紀錄／錄音／公開引用的各別同意、最近一案的步驟、現用工具、主動查證與等待時間、估計或實測、補件次數、正常案處理、原型模式、試看案例順序、找不到的來源、原文反對意見、採購角色、願付原幣與期間、試點條件、下一步是否被明確同意。
+
+匿名引用須先確認確切原句、翻譯及呈現稱呼，避免角色＋平台＋地區＋規模拼回身分。拒絕引用仍可受訪。保存期限與撤回聯絡方式在收集前說明；取得工作流意見不代表獲准取得雇主／客戶資料。未獲權限的內容不要收取。
+
+公開研究狀態目前應寫：`Analyst workflow and willingness to pay: unverified; interviews have not been completed.` 有結果後才填人數、分母、資料期間與限制。試點、合約、ROI 及成效不得由公開詐騙統計或兩個合成案例推定。
+
+## E. 舊版賣家研究：保留脈絡與可重用範本
+
+以下保留 9/24–9/25 擬定的賣家邀請、書面同意、打碼與訪談格式；9/25–9/29 日期、工時配額、案例門檻及「今天就發」均為歷史安排，不代表已執行或本輪新指令。新版實作已獲授權；未達舊案例數不會由本文件撤銷本次授權。現行資源與市場驗證缺口以 [roadmap](../roadmap.md)為準。賣家每月願付與平台採購是兩個不同問題，免費／授權模式仍是商業假設。
+
+既有經同意且打碼的賣家案例仍放 `data/real_cases/`，只作原對話功能的獨立盲測；本輪 FIN-SHIELD 使用固定合成資料，不把訪談或真實賣家資料匯入案件庫。下方模板中的聯絡方式、保存日期、引用權限與雲端處理內容必須在實際收集前依當次用途確認；不能把空白同意範本當已取得授權。
+
+### 歷史文件：賣家案例徵集計畫（9/25–9/29）
 
 - 建立：2026-09-24，Sandy（業務）
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`、`docs/prd.md`（第 8、9、11 節）、`docs/roadmap.md`（停損點②）、`docs/design/storyboard.md`（鐵則 1–3）、`docs/engineering/architecture.md`（第 5 節）
@@ -299,7 +375,7 @@ Read the subreddit rules first. If self-promotion, surveys or requests are not a
 
 ### 4. 聽概念（3 分，只講一句，不 demo）
 
-> 「想像一下：收到買家訊息時，你先把對話貼進一個網頁，10 秒內它告訴你哪幾句有問題、為什麼，然後給你一段可以直接複製回給對方的話。」
+> 「想像一下：收到買家訊息時，你先把對話貼進一個網頁，它標出可疑句子與理由，再給你一段可自行確認、修改的回覆草稿。這是原型概念，實際等待時間與效果都還要驗證。」
 
 1. 「這三塊——告訴你有沒有問題、標出哪一句、給你一段回覆——你最想要哪一塊？哪一塊用不到？」
 2. 「用這種東西，你最擔心什麼？（判錯、得罪客人、要多一個步驟、資料安全）」
@@ -310,7 +386,7 @@ Read the subreddit rules first. If self-promotion, surveys or requests are not a
 先問現況錨點，再問願付：
 
 1. 「你現在有每月付錢的賣家工具嗎？（例如出貨、記帳、廣告、美圖 App）大概每月多少？」
-2. **開放式**：「如果這個工具真的能幫你擋掉一次詐騙，你**每月願意付多少錢防詐**？」先讓對方講數字，**不要先報價**。
+2. **開放式**：「如果試用後覺得這個工具值得保留，你**每月願意付多少錢**？什麼情況下不會付？」先讓對方講數字，**不要先報價**；不預設能擋掉詐騙。
 3. 對方說不出來時，用選項夾出界線（錨點只是問法，**不是建議價**）：
    - 台灣：「每月 NT$30、NT$99、NT$299，哪個你會願意試？哪個你會直接說太貴？」
    - 新加坡：「S$2, S$5 or S$15 a month: which would you try, and which is too much?」

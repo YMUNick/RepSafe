@@ -1,5 +1,36 @@
 # Bug 清單（交給 Eddie）
 
+## FIN-SHIELD QA ledger — 2026-10-02
+
+本節是金融模組的新結果；下方舊 BUG-001–010／95 tests 等保留為歷史，不能用來判定本輪完成。
+
+| ID | Severity / status | Evidence and impact |
+|---|---|---|
+| FS-QA-001 | Medium / Open, intermittent | Controller 真 Firestore write 成功；首次 read 回 lease_not_expired（按設計），後續官方 read 兩次 probe_unavailable；直接 read_phase 與最後包裝官方 main 的執行均 16 checks pass，已產出 read artifact。間歇失敗根因仍未證實，不能宣稱已修復。 |
+| FS-QA-002 | Low / Fixed in QA script | restart CLI 原本把 ServiceError 也遮蔽為 probe_unavailable，妨礙診斷。現僅輸出安全 ServiceError.code 與 phase；SDK 原始錯誤、credentials/path 仍遮蔽。已先寫 RED，再 GREEN。 |
+| FS-QA-003 | Partial browser evidence / Open | Controller 以 Native Browser 對實際 FastAPI router＋明確本機 MemoryStore 完成單 session 風險／正常全流程：HOLD→offline READY、引用、VIP、登入、dismiss、explicit approve、切案清 grant UI、正常反證，無 console error。HTTP tests 已驗兩 session 隔離；兩個獨立瀏覽器情境仍未驗。Quinn 原 standalone script 僅回 dependency_missing，未啟動瀏覽器；依本輪指示不安裝／執行 standalone Playwright，不以它繞過 Native Browser。 |
+| FS-QA-004 | Validation gap / Open | 真 Gemini、真模型 adaptive lookup、具名人工語意 oracle 未執行；offline smoke/G2 八案通過只證明規則與 scripted workflow。不得宣稱 G1/G2 全通過。 |
+| FS-QA-005 | Evidence limitation / Open | Public CaseRecord 按合約不含 durable model-call counter；live smoke 把 model_calls 標未驗證。Trace 長度可能漏計失敗但已扣額呼叫，不能拿它當總花費或 quota 證明。 |
+| FS-QA-006 | Harness / Workaround verified | Controller 確認 Windows sandbox pytest cache provider 在 100% 後卡住；停用 `-p no:cacheprovider` 正常退出。Quinn 全程採此參數，沒有未清理的 hung pytest；不改 production code。 |
+| FS-QA-007 | P2 / Closed, verified | Controller 僅在 public_case 將 visitor:<session UUID> 投影為 visitor；私人 audit 原 actor 不變。Quinn 實跑新增 HTTP 回歸測試：payment／GET case／report 均無 session UUID，私人 audit 保留原 actor；1 passed、1 既有 warning、exit 0。原缺陷未構成已知授權繞過。 |
+
+### FS-QA-001 reproduction and retained evidence
+
+Controller 使用 `repsafe-2026 / (default) / finshield_verify_20261002`，run-id `fs-20261002-a`，只建立合成資料、沒有模型呼叫。write/read 使用不同 Python 程序。成功 artifact 位於執行主機 Windows TEMP 的 `finshield-restart-fs-20261002-a.read.json`；Quinn 已只讀核對 status=pass、backend=firestore、write/read PID 不同、16 checks=true。包含三案付款狀態、bundle/audit hashes、原付款 key replay、已 approve 的 review replay 無重複 audit，以及中斷案到期 INCOMPLETE／HOLD 保留。
+
+成功結果支持這組已測資料的持久化；不消除先前間歇失敗，不代表 Vercel 或真模型可用。後續需要 controller 在同一執行環境保留安全錯誤碼、phase、時間與網路/儲存狀態，才能定位失敗來源。禁止為了重試而自動建新 database、提高 cap 或放寬 HOLD。
+
+RPC deadline 調整後，Controller 直接重跑官方 CLI（無 monkeypatch）在 4.266 秒以 exit 0 完成；同三案 16 checks 全 true，最新 read PID 24584。Quinn 已重讀 artifact 確認。這證明新 bounded adapter 的實際雲端相容性，不能證明先前間歇錯誤的根因已修。
+
+### Integration rulings (not production defects)
+
+- `POST /cases/{id}/investigation` 回 RunResult；UI／QA script 之後 GET case 取 `result.report`。已對齊，不修改 Eddie 路由。
+- G2 版本 `fs-g2-v1` 是獨立 suite 版本，Bundle 仍用核定契約版本 `fs-demo-v1`。最初 QA fixture 使用未核定 dataset_version，正確被 production CHECK_FAILED；已修 QA fixture，付款預期不變。
+- G2 使用目前受限 tool registry 的 record IDs（非展示內容）；八案 IDs、對話、金額、invoice/counter-evidence 與 frozen expectations 均獨立。registry 泛化屬工程後續工作，本輪 QA 不更動 backend。
+- QA 不修改 requirements-dev.txt、production、部署、雲端或其他角色文件。不安裝 standalone Playwright；本輪瀏覽器驗證使用 Native Browser，剩餘瀏覽器情境明確列未驗證。
+
+
+
 - 建立：2026-09-24，Quinn（QA）
 - 來源：閱讀 `app/` 程式＋離線實測（`.venv` 內 pytest、`scripts/run_eval.py --offline --edge`、直接呼叫模組）。**沒有碰到真 Gemini、Web Risk、Cloud Run、手機瀏覽器。**
 - 我沒有改任何 `app/` 程式。標 xfail 的測試在 `tests/test_qa_adversarial.py`，全部 `strict=True, raises=AssertionError`：修好後測試會變成 XPASS → 失敗，請拿掉那一條的 `@pytest.mark.xfail`，斷言不要改。

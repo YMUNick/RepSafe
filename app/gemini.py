@@ -41,10 +41,12 @@ def _get_client(settings: Settings):
             return _client
         from google import genai
         from google.genai import types
+        from app.cloud_identity import cloud_credentials
 
         if not settings.gcp_project:
             raise JudgeError("gemini_unavailable")
         _client = genai.Client(vertexai=True, project=settings.gcp_project, location=settings.gemini_location,
+                               credentials=cloud_credentials(),
                                http_options=types.HttpOptions(timeout=int((settings.gemini_timeout_s + 2) * 1000),
                                                               retry_options=types.HttpRetryOptions(attempts=1)))
     return _client
@@ -73,7 +75,7 @@ def _classify(e: BaseException) -> tuple[str, bool]:
     return "gemini_error", False
 
 
-def generate_json(settings: Settings, contents, system: str | None, schema: dict, purpose: str) -> dict:
+def generate_json(settings: Settings, contents, system: str | None, schema: dict, purpose: str, *, max_output_tokens=None, usage_sink=None) -> dict:
     """One Gemini call returning parsed JSON that matches `schema` (shape checked by the caller)."""
     from google.genai import types
 
@@ -83,6 +85,7 @@ def generate_json(settings: Settings, contents, system: str | None, schema: dict
         temperature=settings.gemini_temperature,
         response_mime_type="application/json",
         response_json_schema=schema,
+        max_output_tokens=max_output_tokens,
     )
     deadline = time.monotonic() + settings.gemini_timeout_s
     attempt = 0
@@ -104,6 +107,10 @@ def generate_json(settings: Settings, contents, system: str | None, schema: dict
             attempt += 1
             time.sleep(min(1.0, max(0.0, deadline - time.monotonic())))
     m = getattr(resp, "usage_metadata", None)
+    if usage_sink is not None:
+        usage_sink({"input_tokens": getattr(m, "prompt_token_count", None),
+                    "output_tokens": getattr(m, "candidates_token_count", None),
+                    "thinking_tokens": getattr(m, "thoughts_token_count", None)})
     log.info(json.dumps({"event": "gemini_ok", "purpose": purpose, "model": settings.gemini_model,
                          "attempts": attempt + 1,
                          "input_tokens": getattr(m, "prompt_token_count", None),

@@ -20,12 +20,15 @@ from pydantic import BaseModel
 from app.analyze import RateLimiter, analyze
 from app.config import get_settings
 from app.tools.url_reputation import make_reputation
+from app.finshield.settings import FinShieldSettings
+from app.cloud_identity import VercelOIDCMiddleware
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 log = logging.getLogger("repsafe.api")
 INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 
 settings = get_settings()
+finshield_settings = FinShieldSettings.from_env()
 reputation = make_reputation(settings)
 limiter = RateLimiter(settings.global_rate_limit_per_hour)
 
@@ -68,6 +71,7 @@ def _warm_up_safe() -> None:
 
 
 app = FastAPI(title="RepSafe", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan)
+app.add_middleware(VercelOIDCMiddleware)
 if settings.offline:
     log.warning("AGENT_MODE=offline_fixture: keyword rules instead of Gemini. Never demo or evaluate with this.")
 
@@ -100,7 +104,7 @@ def config() -> dict:
     """What the front end needs to know: offline label, whether the upload button exists, limits."""
     return {"mode": settings.agent_mode, "offline_fixture": settings.offline,
             "screenshot_enabled": settings.screenshot_enabled, "max_input_chars": settings.max_input_chars,
-            "max_image_mb": settings.max_image_mb}
+            "max_image_mb": settings.max_image_mb, "finshield_enabled": finshield_settings.enabled}
 
 
 @app.post("/api/analyze")
@@ -131,3 +135,8 @@ if settings.screenshot_enabled:
             return {"text": extract_text(data, body.mime_type, settings), "mode": settings.agent_mode}
         except JudgeError as e:
             raise HTTPException(503, f"Could not read the screenshot ({e.code}). Please paste the text.") from None
+
+
+from app.finshield.routes import install as install_finshield
+
+install_finshield(app, settings, finshield_settings)

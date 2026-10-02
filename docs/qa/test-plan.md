@@ -1,5 +1,76 @@
 # 測試計畫：RepSafe（暫定名）
 
+## FIN-SHIELD acceptance — 2026-10-02
+
+此節是本輪金融調查模組驗收；下方 9 月對話測試與數字是歷史紀錄，不能當作 FIN-SHIELD 新結果。資料全部 Synthetic、付款全部 Simulated。沒有真實扣款、帳戶凍結或犯罪認定。
+
+### Evidence levels / 證據層級
+
+- Offline：執行真正的 policy、service、HTTP、引用與 investigator，儲存／模型是明確測試替身；可證明流程，不能證明 Gemini 品質或 durable restart。
+- G1：AC-01–11 的 expected / actual / evidence 全備；真 Gemini trace 有由先前讀取結果揭露的補查；真 Firestore 兩程序證據；具名人工語意判讀。缺一項不通過。
+- G2：八個獨立合成案件，套件版本 `fs-g2-v1`，Bundle 的核定資料契約／政策版本仍為 `fs-demo-v1`／`1`。展示模板 ID、重複案例／對話、展示 prompt 原句拒收。離線 harness 跑付款、授權、冪等、scripted investigation、missing-KYC／tool-timeout；語意與重啟另驗，`g2_pass=false`。
+- 費用沒有帳單／核定單價時 `cost_usd=null, cost_status=unverified`。scripted steps 不是真 model calls；沒有同案人工基線，不宣稱省時。
+
+### AC matrix
+
+| AC | 必驗結果 | 檢查與限制 |
+|---|---|---|
+| AC-01 | 直接 payment API 仍評估 H1/H2，高風險 HOLD，付款時 model calls=0 | direct-policy、HTTP workflow tests；真 UI 另驗 |
+| AC-02 | 正常案通過；歷史 3 筆／270000 minor，不含 current 50000；保留發票／正常共享設備解釋 | 八案 frozen oracle + HTTP report；文字支持程度人工判讀 |
+| AC-03 | 真模型依已讀證據選 revealed next_query，記參數／順序／耗時 | adaptive gate tests 只驗紀錄；offline 固定工具流程不算真 agentic |
+| AC-04 | case/source/record/field/quote/version/call_index/fact 都相符 | QA provenance + backend citation tests；derived history 從唯一 ledger 獨立重算；點擊來源另驗 |
+| AC-05 | 跨 session case/report/KYC、未列前例、偽 actor、任意 tool/path 拒絕 | HTTP boundary/isolation + tools/access；前端隱藏不是授權 |
+| AC-06 | conversation/KYC 注入、VIP、dismiss/escalate 不解除 HOLD | injection、review matrix、G2 injection、HTTP VIP |
+| AC-07 | 缺 KYC/relationship 或 model/tool 失敗 INCOMPLETE；缺 history/policy CHECK_FAILED | 八案缺證／故障 + investigator tests；late result 不覆蓋人工決策 |
+| AC-08 | 無 cookie、visitor、假／過期 grant 無權；五種 review 動作合法转移與 audit | 兩案 review matrix、HTTP、空白 reason 拒收／secret 不回顯 |
+| AC-09 | 同 key/body 重送一次效果；改 reason/action、同版本競爭 409；新 payment key 不重付 | replay/conflict、concurrency、new-key tests；授權在 replay 前檢查 |
+| AC-10 | HOLD/APPROVED/audit/bundle/replay 跨程序一致；過期 RUNNING → INCOMPLETE 且 HOLD | `finshield_restart_probe.py` write/read；fake helper 測試不能當 durable 證據 |
+| AC-11 | 原文字、安全回覆、截圖上傳／預覽／確認、失敗卡；health 精確三欄 | 原 suite + frontend + UI smoke；OCR browser fixture 不代表模型品質 |
+
+### Reproducible commands
+
+工作目錄：`C:/Users/NICK/.codex/worktrees/finshield-vercel/2026AIBUILDERCUP_EC`。Windows sandbox 的 pytest cache provider 曾在 100% 後卡住，必須停用，且看到程序退出才計成功。
+
+```powershell
+$qaPython = 'G:/claude/project/2026AIBUILDERCUP_EC/.venv/Scripts/python.exe'
+& $qaPython -m pytest -p no:cacheprovider tests/test_finshield_acceptance.py tests/test_finshield_eval.py -q
+& $qaPython -m pytest -p no:cacheprovider tests -q
+& $qaPython scripts/finshield_smoke.py --mode offline --revision 'EXPLICIT-REVISION' --out "$env:TEMP/finshield-offline.json"
+& $qaPython scripts/eval_finshield.py --mode offline --suite eval/finshield/g2-v1.json --revision 'EXPLICIT-REVISION' --out "$env:TEMP/finshield-g2.json"
+```
+
+revision 由執行者明確填入；未提交工作樹可用清楚的 working-tree label，不能假稱 commit。QA 不自動操作 Git。
+
+本輪瀏覽器驗證必須使用 Native Browser；不安裝／執行 standalone Playwright 去繞過此流程。Controller 已用 Native Browser 對 port 8802 的真 FastAPI router＋明確本機 MemoryStore 驗過單 session 風險／正常全流程，包括 citation、VIP、reviewer login、dismiss、explicit approve、切案清除 grant UI 與正常反證，無 console error。HTTP tests 另驗兩 session 隔離；兩個独立 browser contexts 尚未驗證。
+
+依原 brief 交付的 `finshield_ui_smoke.py` 是未執行完成的 Playwright 入口，保留做後續另行核定環境的可重用資產，不是本輪瀏覽器操作途徑。它不安裝／下載依賴、限制同 origin 且 model/chat 均 offline；OCR／503／惡意文字回應明確標為 UI fixture。Quinn 唯一一次啟動只回 dependency_missing，未開啟瀏覽器；不把它算成 UI pass。
+
+### Two-process Firestore probe
+
+指定 project/database/collection/run-id。write 建三個 session 的 HOLD、人工 approve、RUNNING 案；write 完成至少 65 秒後，以新 Python 程序 read。保留合成資料，不自動刪除，不建 database/IAM、不呼叫模型。manifest 沒有 cookie、CSRF、reviewer secret、session token/hash。付款 replay 用原事件 actor，審核 replay 用原 reviewer。
+
+```powershell
+& $qaPython scripts/finshield_restart_probe.py --backend firestore --phase write --run-id 'UNIQUE-RUN-ID' --project repsafe-2026 --database '(default)' --collection finshield_verify_20261002 --allow-live
+# Wait for lease_until to expire, then run a separate Python process:
+& $qaPython scripts/finshield_restart_probe.py --backend firestore --phase read --run-id 'UNIQUE-RUN-ID' --project repsafe-2026 --database '(default)' --collection finshield_verify_20261002 --allow-live
+```
+
+預設 manifest 是 Windows TEMP 的 `finshield-restart-<run-id>.json`，read 結果是同位置 `.read.json`。可指定 `--manifest`／`--out`。重複 write 不覆寫 manifest，請使用新 run-id。emulator 必須是 loopback；它不等於雲端驗證。官方 read artifact 存在、程序不同、16 checks 全 true 才算儲存子項 pass。
+
+2026-10-02 controller 的 `fs-20261002-a` write/read 已產出真 Firestore artifact；Quinn 只讀核對兩個 PID 不同與 16 checks 全 true。先前 read 過早的 lease_not_expired 及兩次 probe_unavailable 保留在 bugs，不因最後成功抹去。此項不代表 Vercel、真 AI 或 G1/G2 全通過。
+
+### Live model gate and human oracle
+
+Live smoke 必須 `--mode live --allow-live --max-model-calls 12 --revision ... --out ... --base-url https://...`，及明確 project/database/budget_id/call cap/model 設定；模型模式 gemini、live_calls_enabled=true。缺授權或設定在連網前拒絕。預設 cap=0，本 worker 沒有執行真模型。
+
+最多建立兩個 packaged template case，付款後調查，再 GET public CaseRecord。`POST investigation` 真正回傳 RunResult，不能直接當 CaseRecord。public view 不含 durable model-call counter 時，calls 標未驗證；不能用 trace 長度猜失敗呼叫／費用。live script 不會自動把 adversarial/UI/restart/human AC 蓋 pass。
+
+人工逐項核對：歷史 270000 與未付 current 50000；事件／recorded_at 時間；發票、共用前台設備正常解釋；連結不等於共同控制或犯罪；缺 KYC 不猜身份；VIP 無例外。記 reviewer、verdict、evidence path。機械 fact/provenance 和真人語意結果分開。缺證／故障案不能用捏造完整報告換 READY。
+
+本輪確切命令、退出結果與整合注意事項見 `.superpowers/sdd/finshield-parallel/quinn-report.md`。發布由 controller 依最新 suite 同步；本文件下方數字維持歷史性質。
+
+
+
 - 建立：2026-09-24，Quinn（QA）
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`、`docs/prd.md`（F1–F8、第 7–9 節）、`docs/roadmap.md`、`docs/engineering/architecture.md`、`docs/design/ui-spec.md`、`docs/design/storyboard.md`、`docs/finance/budget.md`
 - Bug 與改善建議：`docs/qa/bugs.md`（本文引用的 BUG-xxx／ENH-xxx 都在那裡）

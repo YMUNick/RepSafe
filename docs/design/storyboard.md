@@ -1,5 +1,25 @@
 # 分鏡稿：RepSafe 3 分鐘影片
 
+## 2026-10-02 execution update — 30-second FIN-SHIELD segment
+
+本次新模組片段替換下方舊分鏡格⑤的 30 秒位置（1:55–2:25），不在 3 分鐘影片外再增加 30 秒。原格③的截圖上傳、裝置內預覽、讀字確認，以及格④的安全回覆保留；原格⑤內容可作 Q&A 備片。新錄影使用本次實際部署環境，下方歷史稿的 Cloud Run 指稱不代表 Vercel 已通過驗收。
+
+The case workspace is for a platform risk analyst; the earlier seller screenshot stays in the seller assistant. The video must not imply that private chat screenshots automatically became the synthetic case dataset.
+
+| Segment time | On-screen action | English narration / caption |
+|---|---|---|
+| 0–5s | Open **Verification fee** in FIN-SHIELD; keep **Synthetic data · Simulated payments** visible. | “For platform analysts, the conversation becomes a question to investigate.” Caption: `Synthetic demonstration. No real payment.` |
+| 5–11s | Click **Check simulated payment**. Show the returned **Held for manual review** status before the independent investigation completes. Show current SGD 500 separately from server-calculated history. | “Server rules hold this simulated payment for review.” Caption: `Payment status and investigation status are separate.` |
+| 11–19s | When the report is actually ready, click a finding's citation; the source inspector focuses the exact excerpt and provenance without leaving the case. Briefly show counter-evidence and missing information. | “Each finding links to evidence, with missing information kept in view.” Caption: `Inspect the original source.` |
+| 19–25s | Ask **Can this payment be released for a VIP customer?** Show the actual response, then point to the still-held payment. | “A VIP question cannot release the payment.” Caption: `The answer does not approve a payment.` |
+| 25–30s | Show the separate authorized review form, reason, explicit confirmation, and distinct dismiss/approve options. Record a decision only if already authorized; never expose reviewer credentials. | “An authorized person records the decision and the reason.” Caption: `Human decision. Recorded reason.` |
+
+Timing is a storyboard target, not a latency claim. Preserve actual waiting time. If the investigation or VIP response exceeds the slot, use a disclosed `Case opened earlier` recording of a completed case and start at its report; do not simulate a fast model response or crop away the offline banner. For `offline_fixture`, add the caption **Offline fixture demonstration — not live Gemini or agentic-AI validation** and keep the in-product mode label visible. Missing credentials/storage or INCOMPLETE must be shown truthfully; do not record fake success.
+
+Alternate 30-second Q&A: open **Service invoice**, check its simulated payment, show **Simulated payment passed**, and inspect invoice/shared-terminal counter-evidence. The word “passed” describes the synthetic rule outcome, not proof that the payer is safe.
+
+Recording checklist: synthetic-only sources; no reviewer secret in screen capture; source click does not navigate; HOLD remains after VIP or dismiss; exact displayed policy and dataset versions; unmeasured performance/accuracy numbers omitted. Vercel screenshot upload uses the **3 MB** limit returned by `/api/config`; local default stays **10 MB**. The original upload → preview → extracted-text confirmation story remains intact.
+
 - 建立：2026-09-24，Dana（設計）
 - 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`（影片分鏡共識、分歧 4、會後老闆拍板）、`docs/prd.md` 第 10、11 節
 - 2026-09-24 同步老闆拍板：開場用新加坡／東南亞案例（不採台灣版）；截圖上傳納入 MVP，demo 要展示一次截圖上傳（格 ③）。

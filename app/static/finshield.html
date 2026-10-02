@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no, email=no, address=no">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#FFF7F2">
+  <title>FIN-SHIELD · RepSafe investigation workspace</title>
+  <link rel="stylesheet" href="/finshield.css">
+  <script src="/finshield.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#workspace">Skip to investigation</a>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="RepSafe home">
+      <span class="brand-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 28 28" fill="none"><path d="M14 3 24 7v6c0 6-4 10-10 12C8 23 4 19 4 13V7L14 3Z" stroke="currentColor" stroke-width="2"/><path d="M9 11h10v6h-5l-3 2v-2H9v-6Z" stroke="currentColor" stroke-width="1.6"/></svg></span>
+      <span>Rep<span class="brand-accent">Safe</span><small>FIN-SHIELD</small></span>
+    </a>
+    <nav aria-label="Workspace navigation"><a href="#workspace" aria-current="page">Investigation</a><a href="/">Seller assistant <span aria-hidden="true">↗</span></a></nav>
+    <span class="environment">Synthetic workspace</span>
+  </header>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Case templates">
+      <p class="eyebrow">INVESTIGATION DESK</p>
+      <h2>Case library</h2>
+      <p class="muted">Explore two synthetic payment scenarios.</p>
+      <div class="templates" role="group" aria-label="Choose a synthetic case">
+        <button class="template selected" id="template-risk" type="button" data-template="risk-fee" aria-pressed="true">
+          <span class="template-top"><span class="case-symbol amber" aria-hidden="true">01</span><span class="chip">Synthetic</span></span>
+          <strong>Verification fee</strong><span>A fee requested before sale proceeds are released.</span><span class="template-bottom">Examine payment context <span aria-hidden="true">→</span></span>
+        </button>
+        <button class="template" id="template-normal" type="button" data-template="normal-invoice" aria-pressed="false">
+          <span class="template-top"><span class="case-symbol mint" aria-hidden="true">02</span><span class="chip">Synthetic</span></span>
+          <strong>Service invoice</strong><span>An invoice for a service already delivered.</span><span class="template-bottom">Explore counter-evidence <span aria-hidden="true">→</span></span>
+        </button>
+      </div>
+      <div class="sidebar-note"><span class="eyebrow">THE REVIEW PRINCIPLE</span><p>Follow the evidence.<br>Keep the decision human.</p><small>Demo rules are illustrative. This workspace does not move money or determine criminal activity.</small></div>
+    </aside>
+    <main id="workspace" tabindex="-1">
+      <div class="page-heading"><div><p class="eyebrow">REPSAFE / FIN-SHIELD</p><h1>Clarity before a decision.</h1><p class="muted">Trace the context. Check the evidence. Review with care.</p></div><span class="workspace-icon" aria-hidden="true">↗</span></div>
+      <div class="disclosure"><span class="disclosure-dot" aria-hidden="true"></span><strong>Synthetic data · Simulated payments</strong><span>No real funds are held or released.</span></div>
+      <p id="mode-note" class="mode-note">Model mode unavailable. Open a case to check the service.</p>
+      <div id="feedback" class="feedback" role="alert" tabindex="-1" hidden></div>
+      <p id="request-progress" class="helper" role="status" hidden>Contacting the case service…</p>
+      <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+      <section class="panel case-overview" aria-labelledby="case-title">
+        <div class="section-heading"><div><p class="eyebrow">CASE OVERVIEW</p><h2 id="case-title">Verification fee</h2></div><span class="chip" id="case-version">Template preview</span></div>
+        <p id="case-id" class="metadata">Open a case to load its session-scoped records.</p>
+        <div class="status-grid">
+          <div class="status-card"><span class="field-label">Payment status</span><strong id="payment-status">Not checked</strong><span id="payment-code" class="metadata">No payment has been submitted.</span></div>
+          <div class="status-card"><span class="field-label">Investigation status</span><strong id="investigation-status">Not started</strong><span id="investigation-code" class="metadata">Evidence appears after investigation.</span></div>
+        </div>
+        <div class="action-row"><button class="button primary" id="open-case" type="button">Open synthetic case <span aria-hidden="true">→</span></button><button class="button primary" id="check-payment" type="button" hidden>Check simulated payment</button><button class="button" id="investigate" type="button" hidden>Investigate evidence</button><button class="button quiet" id="refresh-case" type="button" hidden>Refresh case</button></div>
+        <p id="payment-note" class="helper">Opening a case loads the selected template. Payment checks run on the server.</p>
+      </section>
+      <div class="evidence-layout">
+        <div class="analysis-column">
+          <section class="panel" aria-labelledby="context-heading"><div class="section-heading"><h2 id="context-heading">Payment context</h2><span class="chip">Synthetic</span></div><blockquote id="conversation">“Pay a verification fee before receiving your sale proceeds.”</blockquote><dl class="metrics"><div><dt>Current payment</dt><dd id="current-amount">SGD 500.00</dd></div><div><dt>Settled history total</dt><dd id="history-total">Not calculated</dd></div><div><dt>Eligible transactions</dt><dd id="history-count">Not calculated</dd></div></dl><p class="helper" id="metric-window">Historical totals exclude the current payment and future records.</p><div id="rule-summary" class="rule-summary">Rules have not run for this preview.</div></section>
+          <section class="panel report-panel" aria-labelledby="report-heading"><div class="section-heading"><div><p class="eyebrow">EVIDENCE-LED SUMMARY</p><h2 id="report-heading">Investigation report</h2></div><span class="chip" id="report-state">Awaiting case</span></div><p class="helper">Select a citation to inspect its exact source excerpt.</p><div id="investigation-notice" class="notice">Open a synthetic case and check the payment to begin.</div><h3>Findings</h3><div id="findings" class="claim-list"><p class="empty">No findings yet.</p></div><h3>Counter-evidence</h3><div id="counter-evidence" class="claim-list"><p class="empty">No counter-evidence returned yet.</p></div><h3>Missing information</h3><ul id="missing-information" class="plain-list"><li>Investigation has not started.</li></ul><h3>Policy basis</h3><div id="policy-basis" class="claim-list"><p class="empty">No policy claims returned yet.</p></div><h3>Suggested next steps</h3><ul id="next-steps" class="plain-list"><li>Check the simulated payment.</li></ul></section>
+          <section class="panel" aria-labelledby="vip-heading"><div class="section-heading"><h2 id="vip-heading">A second question</h2><span class="chip">Once per case</span></div><p>“Can this payment be released for a VIP customer?”</p><button class="button" id="ask-vip" type="button" disabled>Ask about VIP status</button><p id="vip-answer" class="helper">The answer cannot approve or release a payment. Use the separate review form for a decision.</p></section>
+        </div>
+        <aside class="sources-column" aria-label="Evidence and human review">
+          <section class="panel source-panel" aria-labelledby="source-heading"><div class="section-heading"><h2 id="source-heading">Source inspector</h2><span class="chip" id="source-count">No sources</span></div><p class="helper">Only records from this case. Links inside records remain plain text.</p><div id="source-inspector" class="source-inspector" tabindex="-1"><p class="empty">Choose a report citation to see its source, field, version, and exact quote.</p></div><details id="source-details"><summary>Browse case records</summary><div id="source-list" class="source-list"><p class="empty">Open a case to load its records.</p></div></details></section>
+          <section class="panel review-panel" aria-labelledby="review-heading"><div class="section-heading"><h2 id="review-heading">Human review</h2><span class="chip" id="review-access">Authorization required</span></div><p class="helper">Only an authorized reviewer can approve or cancel a held simulated payment.</p>
+            <form id="review-login"><label for="reviewer-id">Reviewer ID</label><input id="reviewer-id" name="reviewer_id" autocomplete="username" required maxlength="100"><label for="reviewer-secret">Reviewer secret</label><input id="reviewer-secret" name="secret" type="password" autocomplete="off" required maxlength="500"><button class="button" id="login-submit" type="submit" disabled>Authorize for this case</button><p class="helper">Credentials are sent to the server and are not saved by this page.</p></form>
+            <form id="review-form" hidden><label for="review-action">Review action</label><select id="review-action" required><option value="keep_hold">Keep on hold</option><option value="escalate">Escalate for review</option><option value="dismiss">Dismiss alert — keep payment held</option><option value="approve">Approve held payment</option><option value="cancel">Cancel simulated payment</option></select><label for="review-reason">Reason for your decision</label><textarea id="review-reason" rows="3" maxlength="500" required placeholder="Describe your manual checks or missing evidence."></textarea><p id="review-evidence" class="helper">The currently inspected report citation will be attached, if available. Otherwise explain your manual checks.</p><label class="confirm-label" for="review-confirm"><input id="review-confirm" type="checkbox" required><span id="confirm-copy">I confirm this review decision for the displayed case and version.</span></label><button class="button primary" id="review-submit" type="submit">Record review decision</button></form>
+            <p class="helper">Dismiss alert, keep hold, and escalate leave a held payment on hold.</p>
+          </section>
+        </aside>
+      </div>
+      <section class="panel audit-panel" aria-labelledby="audit-heading"><div class="section-heading"><div><p class="eyebrow">ACCOUNTABILITY</p><h2 id="audit-heading">Decision trail</h2></div><button class="button" id="download-report" type="button" disabled>Download JSON report</button></div><p class="helper">Server-recorded decisions and reasons. Investigation activity does not release funds.</p><ol id="audit-list" class="audit-list"><li class="empty">No recorded decisions loaded.</li></ol></section>
+      <footer>FIN-SHIELD is a RepSafe investigation module. Synthetic demonstration only.</footer>
+    </main>
+  </div>
+</body>
+</html>

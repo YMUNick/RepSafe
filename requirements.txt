@@ -4,3 +4,5 @@ uvicorn[standard]>=0.30
 google-genai>=1.30
 google-cloud-webrisk>=1.12
 python-dotenv>=1.0
+# The bounded transaction RPC adapter is verified against this SDK version.
+google-cloud-firestore==2.34.0

@@ -1,5 +1,69 @@
 # UI 規格：RepSafe（MVP）
 
+## 2026-10-02 execution update — FIN-SHIELD workspace
+
+本節為本次 FIN-SHIELD 實作規格；下方原賣家介面規格與截圖流程保留。FIN-SHIELD 是同一個 RepSafe 產品內供平台風控分析師使用的模組，不是新品牌或真實付款系統。
+
+### Views and information hierarchy / 視圖與資訊順序
+
+- Seller view `/`: preserve paste, screenshot upload, local preview, text confirmation, and safe reply. Add only a FIN-SHIELD entry, hidden unless `/api/config` returns `finshield_enabled: true`. Chat and screenshots do not automatically become case records.
+- Analyst view `/finshield`: a two-template case library, a case overview with independent payment and investigation states, payment context, evidence report, source inspector, separate human review, and decision trail. On narrow screens the case library becomes two compact cards and the workspace becomes one column.
+- Before opening a case, show an explicitly synthetic preview with no calculated history, no payment outcome, and no model-success claim. A missing service shows a readable error and retains only the last confirmed server state.
+- Public and reviewer views use the same case layout. The review form is visible only when the server returns `permissions.can_review === true`; reviewer login is scoped to the displayed case. Server authorization remains mandatory.
+
+### Visual system / 視覺系統
+
+UI-UX-Pro-Max design-system search was run for `financial analyst evidence dashboard`; its dark, marketing-oriented result did not fit the brief. The narrower `operations dashboard light minimal` search returned **Minimalism & Swiss Style**, supporting clear hierarchy, grids, visible focus, and restrained motion. Apply these recommendations to a workspace, retaining the existing RepSafe system font and colors rather than the suggested marketing hero or external font imports.
+
+| Token | Value | Purpose |
+|---|---|---|
+| Page | `#FFF7F2` | Existing RepSafe warm canvas |
+| Surface | `#FFFFFF` | Evidence and review cards |
+| Text | `#182F2C` | Primary readable content |
+| Secondary text | `#586663` | Explanations and provenance |
+| Teal | `#0F766E` / `#115E59` | Controls and evidence references |
+| Mint | `#E9F6F0` | Synthetic-data notice and citation background |
+| Amber | `#92400E` / `#FFFBEB` | Held payment and incomplete investigation notices |
+| Coral | `#C2410C` | RepSafe brand anchor |
+| Focus | `#2563EB` | Keyboard focus outline |
+
+No fabricated risk scores, live counters, loss estimates, or decorative network graph. Neutral styling for `SIMULATED_PASSED` avoids implying a payment is safe. Buttons and fields have at least 44px targets; reduced-motion preference disables transitions; long IDs and excerpts wrap inside the card. No remote fonts, asset requests, or build step.
+
+### Fixed English copy and interaction / 固定英文文案與操作
+
+Persistent disclosure: **Synthetic data · Simulated payments** / `No real funds are held or released.`
+
+| State | Display |
+|---|---|
+| `PENDING_CHECK` | Pending server check |
+| `HOLD_PENDING_REVIEW` | Held for manual review |
+| `SIMULATED_PASSED` | Simulated payment passed |
+| `CHECK_FAILED` | Payment check failed |
+| `SIMULATED_CANCELLED` | Simulated payment cancelled |
+| `NOT_STARTED` / `RUNNING` | Not started / Investigation running |
+| `READY` / `INCOMPLETE` | Report ready / Investigation incomplete |
+
+`offline_fixture` displays **Offline fixture · Deterministic synthetic demonstration, not live Gemini or proof of agentic AI.** `gemini` identifies the configured mode and explicitly states that configuration alone does not prove a successful model call. Missing or unknown mode stays unavailable. A failed investigation displays **Investigation incomplete. Manual review is required.** A network failure shows **Outcome not confirmed** until refresh resolves it; it does not claim the server recorded INCOMPLETE.
+
+1. Select `Verification fee` or `Service invoice`; click `Open synthetic case` to bootstrap the session and load a case. The preview cannot change server state.
+2. `Check simulated payment` posts an empty payment request, displays the returned server payment status, then awaits a separate investigation request. `Refresh case` retrieves durable state. A `RunResult` response is followed by GET of the public case.
+3. Show actual program metrics: current amount, historical total, eligible count, and the exact window. Do not compute substitute risk metrics in the browser; current and historical payment amounts remain separate.
+4. Read **Findings / Counter-evidence / Missing information / Policy basis / Suggested next steps** from `result.report`. Citation buttons match the full provenance tuple against returned tool evidence, check case scope, and compare available source fields. Invalid citations are disabled. Selecting one updates and focuses the source inspector without navigating; source URLs remain text. Derived evidence shows its transaction IDs when supplied.
+5. `Ask about VIP status` posts only to `/vip` once per case and presents its answer. It cannot call review or release a payment.
+6. Enter reviewer ID and secret in the separate authorization form. The password field clears before the request; the page does not save secrets or cache the login body.
+7. Review requires an action, a trimmed non-empty reason, and explicit confirmation. **Approve held payment** and **Cancel simulated payment** are distinct from **Dismiss alert — keep payment held**, **Keep on hold**, and **Escalate for review**. The submitted command includes the displayed `expected_version` and the inspected citation, if any. Form edits or a new server snapshot clear confirmation. A conflict refreshes the case and requires a new confirmation.
+8. **Decision trail** displays server audit events. **Download JSON report** retrieves the authorized report endpoint; it does not synthesize an export from assumed findings.
+
+All untrusted content uses `textContent`. Requests use same-origin credentials, JSON, and the session CSRF token. A request path and unchanged body retain one idempotency key across network retries within the page. Reload starts a new page/session workflow; the client does not persist credentials. Duplicate buttons are disabled while requests are pending. A replayed older version cannot overwrite a newer displayed version.
+
+### Screenshot hosting constraint / 截圖部署限制
+
+The seller page continues to read `max_image_mb` from `/api/config`. For Vercel, Controller sets **MAX_IMAGE_MB=3** because image bytes are encoded as base64 JSON inside the platform's 4.5 MB request-body limit. Do not hardcode 4 MB in the UI. The existing local default remains **10 MB**. Preserve upload → local preview → extracted-text confirmation → message check. Uploading a screenshot does not upload the local preview again or create a FIN-SHIELD case.
+
+### Verification boundary / 驗證邊界
+
+Dana owns `app/static/finshield.html`, `.js`, `.css`, the existing homepage entry only, this document, the storyboard, and `tests/test_finshield_frontend.py`. Backend auth, Firestore durability, live Gemini, cross-session authorization, and deployment are verified by Eddie, Quinn, and Controller. Frontend rendering tests cannot prove those server guarantees. Actual commands and results are in `.superpowers/sdd/finshield-parallel/dana-report.md`.
+
 > Reply safe. Keep your rep.
 
 - 建立：2026-09-24，Dana（設計）

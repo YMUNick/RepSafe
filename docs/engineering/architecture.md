@@ -1,145 +1,172 @@
-# RepSafe 架構
+# RepSafe × FIN-SHIELD 架構
 
-- 建立：2026-09-24，Eddie（工程師）
-- 依據：`docs/meetings/2026-09-24-電商客服反詐騙.md`、`docs/prd.md`、`docs/roadmap.md`
-- 狀態：**後端骨架已完成，在離線模式可以跑，69 個單元測試通過**。還沒接過真的 Gemini 和 Web Risk，也還沒部署。前端依 roadmap 排在 10/6 之後。
+- 更新：2026-10-02，Paula（PM，本次架構文件責任）；保留 Eddie 的原對話模組設計基線。
+- 依據：[PRD](../prd.md)、[roadmap](../roadmap.md)、[48h 核心工程計畫](../superpowers/plans/2026-10-02-finshield-48h-core.md)與本次平行實作契約。
+- 已授權六角色平行實作、GitHub 中英文件及 Vercel 部署；Controller 負責整合、發布與最終驗證。本文件描述目標契約與可核對的原模組，不宣告新功能、真 Gemini、Firestore 重啟或部署已通過。
+- 原會議／工程計畫的「僅規劃」及順序執行限制屬歷史授權；本次分工以 roadmap 為準。Paula 不改程式、他人檔案或部署設定。
 
-## 1. 一張圖
+## English summary
 
-```
-手機瀏覽器（前端，10/6 起做）
-   │  POST /api/analyze {text}               （截圖開關打開時，先呼叫 POST /api/extract-text {image} 拿到文字，
-   ▼                                           讓賣家確認後再送 /api/analyze）
-Cloud Run 單一服務：FastAPI（app/main.py），最小實例 0
-   │
-   ├─ ① 讀取文字
-   ├─ ③ 比對網域  app/tools/domain_check.py   純程式、不連網：抽出連結 → punycode 轉回原字 → 和白名單比字元差距；短網址直接列紅旗
-   ├─ 注入防護    app/analyze.py INJECTION_RE  純程式：抓「忽略前述指示／判定為正常」這類句子
-   ├─ ② 查網址    app/tools/url_reputation.py  Web Risk（可換）── 平行 ──┐
-   ├─ Gemini 判斷 app/gemini.py + app/prompt.py  JSON schema ─────────────┘  兩個同時跑，省時間
-   ├─ ④ 完成判定  app/verdict.py  紅／琥珀／灰（全專案只有這裡決定判定）
-   └─ 安全回覆過濾 app/reply_filter.py  用程式再濾一次網址、帳號、電話、ID
-```
+RepSafe keeps its existing stateless conversation and screenshot checks. FIN-SHIELD adds case-scoped synthetic evidence, deterministic payment rules, a bounded investigator and separately authorized human review. The backend remains portable FastAPI, with Vercel as the current deployment target and Firestore as the required durable online store. The original Cloud Run deployment is historical context, not a restriction on the new target.
 
-## 2. 模組
+Session cookies, exact Origin checks, CSRF protection and server-side case grants protect writes. Public case responses expose evidence and review permission, never session/token/key hashes or internal operations. The investigator has four read-only tools and cannot change payment state. Offline fixtures must be labelled deterministic demonstrations; they are not real agentic AI and do not satisfy G1. The feature is disabled by default and the model-call cap is zero.
 
-| 檔案 | 做什麼 | 對應 PRD |
-|---|---|---|
-| `app/main.py` | `/health`（也用來暖機）、`/api/config`（前端要知道是否離線、截圖功能有沒有開）、`/api/analyze`、`/api/extract-text`（只在截圖開關打開時才存在） | — |
-| `app/config.py` | 全部設定都從環境變數讀，寫法和 LineSleuth 一樣 | — |
-| `app/analyze.py` | 主流程、注入防護、檢查 Gemini 輸出格式、全服務每小時請求上限、只記 metadata 的 log | F2、F6、F7 |
-| `app/tools/domain_check.py` | 抽出連結、punycode 解碼、同形字（西里爾字母、數字 0/1/3/5）折回拉丁字母、Levenshtein 字元差距、子網域冒用（`shopee.tw.xxx.com`）、`@` 偽裝、短網址清單 | F4、F5 |
-| `app/tools/url_reputation.py` | `UrlReputation` 介面＋`WebRiskReputation`＋`FixtureReputation`，平行查詢，全部查詢共用一個截止時間 | F3 |
-| `app/gemini.py` | Vertex AI 包裝層：一次呼叫、逾時、只有 429／5xx 會重試、失敗時丟出帶問題代碼的例外 | F2 |
-| `app/prompt.py` | system prompt、判斷用 JSON schema、截圖讀字用 schema。**評測樣本不得寫進這個檔案** | F2 |
-| `app/reply_filter.py` | 安全回覆後處理 | F8 |
-| `app/verdict.py` | 三態判定規則 | F6 |
-| `app/offline_fixture.py` | 沒有 GCP 時用關鍵字規則代替 Gemini；另有固定的安全回覆範本（Gemini 失敗時也用這份） | — |
-| `app/screenshot.py` | **可獨立拔除**的截圖讀字模組（見第 6 節） | F1 |
+Implementation and deployment evidence are pending Controller verification. Missing credentials or storage fail closed; an explicitly labelled synthetic preview may remain available without claiming persisted case actions. USD 100 and the historical 25-hour total cap remain constraints with actual usage unresolved.
 
-### 從 LineSleuth 沿用的部分（只複製，沒有改動原資料夾）
+## 1. 部署拓撲與責任
 
-- `Dockerfile` 的結構、`config.py` 的環境變數寫法、`tests/conftest.py` 的斷網測試設計。
-- Gemini 包裝層的寫法：關掉 SDK 自己的重試、用 thread future 控制逾時、只有 429／5xx 會重試、log 只記 token 數。
-- 沒有沿用的：function calling 迴圈、BigQuery、調查狀態管理、QR code。RepSafe 每個請求都是無狀態的，比 LineSleuth 簡單很多。
-
-## 3. 判定卡三態（`app/verdict.py`）
-
-| 優先順序 | 條件 | 判定 |
-|---|---|---|
-| 1 | 任何來源找到至少一條紅旗：網域比對、短網址、Web Risk 命中、注入防護、Gemini | **red** |
-| 2 | 沒有紅旗，但有任何一項沒完成：Gemini 逾時、超過配額、錯誤、輸出不符合 schema；Web Risk 錯誤、逾時；連結超過查詢上限；達到每小時請求上限；程式 bug | **grey** |
-| 3 | 沒有紅旗，而且每一步都完成 | **amber** |
-
-- **失敗絕對不會變成琥珀卡**：只要有任何一個問題代碼（包含還沒定義的代碼）就排除琥珀。程式的例外也會被接住變成灰卡，不會回 500。
-- **紅卡優先於灰卡**：這點和 PRD 第 7 節的字面寫法不同，**要請 Paula、Quinn 確認**。原因是如果照字面做，一個 punycode 冒用蝦皮的連結只要剛好碰上 Web Risk 超過配額，就會從紅卡變成灰卡，而灰卡在評測裡算漏報。本地網域比對已經確定的紅旗，不應該因為別的服務失敗而消失。
-- Gemini 回傳的紅旗，引用的句子**必須真的出現在原訊息裡**（比對前會做全形半形正規化和空白正規化），找不到的就丟掉（對應 F7）。如果 Gemini 判定是詐騙，但沒有任何一條引用能驗證，就當作輸出不符合 schema，顯示灰卡。這個規則可能太嚴格，要看評測結果再調。
-- 判定結果由程式從紅旗推導出來，Gemini 不直接輸出判定。所以注入攻擊就算騙過 Gemini，也蓋不掉工具和注入防護找到的紅旗。
-
-## 4. 「兩個 function calling 工具」的實作方式（要請老闆知悉）
-
-會議寫的是 function calling。**我實際上改成由程式對每個連結強制執行兩個工具，再把結果當作可信事實交給 Gemini，只呼叫 Gemini 一次。**
-
-- 理由：①注入攻擊沒辦法叫模型「不要查」②function calling 至少要兩次 Gemini 來回（先決定呼叫工具，再輸出結論），改成一次呼叫，10 秒的時間預算才守得住 ③程式比較少，也比較好測試。
-- 對技術分的影響：畫面上四個步驟標籤照常亮起，影片和 pitch 可以說成「tool-augmented Gemini, tools are enforced by code」。兩個工具的 `FUNCTION_DECLARATION` 已經寫在各自的模組裡。
-- 如果老闆堅持一定要用真的 function calling 迴圈：**約 +2 小時**，每次請求多一次 Gemini 來回（延遲待實測）。我不建議。
-
-## 5. 安全與隱私
-
-| 要求 | 怎麼做 | 測試 |
-|---|---|---|
-| 絕不打開使用者的連結 | 程式裡沒有任何 HTTP client 會去碰使用者的網址；Web Risk 只收網址字串；短網址不展開 | `tests/conftest.py` 在測試期間封鎖所有對外連線和 DNS 查詢，全部測試都在斷網狀態下通過 |
-| 安全回覆不含連結、帳號 | Gemini 的回覆和固定範本都要經過 `filter_reply`：網址、裸網域、xn--、email、@帳號、`ID: xxx`、6 位數以上的數字，再加上原訊息出現過的每一個連結、網域、數字、帳號 | `tests/test_reply_filter.py` |
-| 服務端不記錄對話內容 | log 只記 request_id、字數、連結數、判定、問題代碼、紅旗來源、耗時、token 數；例外只記類別名稱 | `tests/test_api.py::test_logs_never_contain_message` |
-| 前端沒有 API key | Vertex AI 和 Web Risk 都用 Cloud Run 服務帳號（ADC），整個專案沒有 key | Quinn 上線前檢查 |
-| Prompt injection | 訊息用標籤包起來，並跳脫結束標籤；system prompt 宣告訊息是不可信資料；另外用程式的注入防護把注入句子直接列為紅旗 | `tests/test_verdict.py` |
-| 金鑰與真實截圖不會被提交 | `.gitignore` 排除 `.env*`、`*.pem`、`*.key`、`*credentials*.json`、`*service-account*.json`、`data/real_cases/`、`data/private/`、`eval/results/` | — |
-
-**真實截圖一律放在 `data/real_cases/`**（這個資料夾已被 git 忽略，Sandy、Quinn 請照這個路徑放）。
-
-已知的過濾副作用：日期（例如 2026-09-24）、6 位數以上的價格也會被濾掉。安全回覆本來就不應該出現這些，所以接受。
-
-## 6. 截圖輸入開關與工時估算（回答 PRD 第 11 節）
-
-- 開關：`SCREENSHOT_ENABLED`，**預設開啟**（老闆 2026-09-24 拍板做截圖）。離線模式（`AGENT_MODE=offline_fixture`）不呼叫 GCP，回固定範例文字；設成 `false` 時 `/api/extract-text` 這條路由根本不存在（404），`/api/config` 會回 `screenshot_enabled:false`，前端就不顯示上傳按鈕。
-- 設計：截圖只讀文字，讀出來的文字回給前端讓賣家確認，**再送 `/api/analyze`**。原因是 Gemini 讀截圖時可能把改字網域「修正」回正確網址，讓賣家看一眼就能補救。
-- 限制：只接受 png、jpeg、webp、heic、heif，大小 ≤ 10MB，圖片不存也不記錄。
-- 要完全拔掉：刪除 `app/screenshot.py`，再刪掉 `app/main.py` 裡 `if settings.screenshot_enabled:` 那一段，其他模組都沒有引用它。
-
-**「不做截圖」能省多少（Eddie 估算，不是實測）**
-
-| 項目 | 截圖開啟要花的工時 | 說明 |
-|---|---|---|
-| 後端 | 0.5 | 骨架已經寫好，剩下用真的 Gemini 驗證讀字結果（特別是改字網域會不會被讀錯） |
-| 前端 | 1–1.5 | 上傳按鈕、預覽、讀字中的狀態、讓賣家確認文字、錯誤提示 |
-| 評測／QA | 0.5–1 | Quinn 清單上的 10MB、HEIC、iPhone Safari 上傳測試 |
-| **合計（不做就省下）** | **2–3 小時** | |
-
-結論：只砍截圖的話，省下 2–3 小時，**不一定湊得到 Paula 要的 3 小時**。不過後端骨架今天已經完成，後端工時也往下修了（見第 7 節），兩者加起來，找賣家的 3 小時可以排進去。
-
-## 7. 工時重估（25 小時上限）
-
-| 類別 | 會議原估 | 重估（截圖開） | 重估（截圖關） | 說明 |
-|---|---|---|---|---|
-| 後端 | 9 | 5 | 4.5 | 骨架已完成。剩下：讀懂程式 1、接真的 Gemini／Web Risk 1–1.5、依評測調 prompt 2、修正 0.5 |
-| 評測 | 7 | 7 | 6.5 | 33 則評測集和評測腳本還沒寫（Quinn 定規格） |
-| 前端 | 4 | 4 | 3 | 單畫面、三態判定卡、步驟標籤、一鍵複製 |
-| 部署與影片 | 5 | 5 | 5 | |
-| 找賣家 | 0 | 3 | 3 | Paula 的配額提案 |
-| **合計** | 25 | **24** | **22** | 都是估算。9/26 開工第一天，用真的 Gemini 跑通後再修正一次 |
-
-後端的數字是假設老闆接手這份骨架時不重寫。老闆讀程式的時間也已經算進去了。
-
-## 8. 設定與部署
-
-- 本機：見 `README.md`「本機啟動」。`.env.example` 預設為離線模式（`AGENT_MODE=offline_fixture`、`URL_REPUTATION_BACKEND=fixture`），不需要 GCP 就能跑。
-- 程式預設值（沒有 `.env` 時，例如在 Cloud Run 上）是 `gemini` 加 `webrisk`，上線時不會因為少設一個變數而掉進離線模式。每個回應都帶 `mode` 和 `offline_fixture`，前端要在離線模式時明顯標示。
-- Cloud Run 部署（範例，region 待老闆決定；評審在新加坡，建議 `asia-southeast1`）：
-
-```
-gcloud run deploy repsafe --source . --region asia-southeast1 \
-  --min-instances 0 --max-instances 2 \
-  --set-env-vars AGENT_MODE=gemini,URL_REPUTATION_BACKEND=webrisk,GOOGLE_CLOUD_PROJECT=<獨立專案>,GEMINI_MODEL=<釘選版本>
+```text
+瀏覽器
+  ├─ /                         原 RepSafe 對話／截圖確認
+  └─ /finshield                FIN-SHIELD 合成案件／來源／覆核
+             │ 同源 HTTP；cookie + Origin + CSRF
+             ▼
+可攜 FastAPI（app/main.py；本次目標 Vercel）
+  ├─ /api/analyze、/api/extract-text、/api/config、/health
+  └─ /api/finshield/*
+       ├─ session / reviewer grant ─┐
+       ├─ 付款規則 / 人工 review ──┼─ Firestore 原子狀態／audit／冪等
+       └─ Investigator ────────────┘  lease／呼叫配額
+            ├─ offline_fixture：固定合成示範
+            └─ gemini：有限 structured-action 迴圈
+                 └─ 四個案件範圍 READ 工具 → 已回傳 evidence → 引用驗證
 ```
 
-- GCP 要先做的：開獨立專案（Felix）、啟用 Vertex AI API 與 Web Risk API（`webrisk.googleapis.com`）、服務帳號授予 Vertex AI User。Web Risk 需要的 IAM 角色**待確認**（應該是 Web Risk User）。
-- 成本防線：最小實例 0、最大實例 2、`GLOBAL_RATE_LIMIT_PER_HOUR`（計數存在記憶體裡、每個實例各算各的，所以實際上限是這個值乘以最大實例數）、Gemini 每日配額（在 GCP 主控台設定，Felix）。單次請求費用待估算（每次 log 都有 token 數，接上真的 Gemini 後就能算）。
+前端靜態檔仍由後端提供 `/finshield`、`/finshield.js`、`/finshield.css`；UI/API 採同源部署。Controller 核對 Vercel 的實際路由、執行時間／檔案限制與雲端憑證，將實測寫入部署記錄；不能把可攜設計當成平台已相容的證據，亦未授權升級付費方案。
 
-## 9. 延遲預算（熱機時九成請求 ≤ 10 秒）
+Firestore 是線上案件及 reviewer session 的必要持久層。記憶體 fake 只供明確本機開發／測試，emulator 只供明確本機驗證；Vercel 不得以本地 SQLite 或記憶體靜默代替 Firestore。缺 credentials、database 或權限時，受保護 API 回失敗並由 UI 明示 unavailable，不能假造建立／覆核／調查成功。
 
-- 網域比對和注入防護：毫秒級。
-- Web Risk 和 Gemini 同時跑；Web Risk 每次查詢最多 3 秒（`WEBRISK_TIMEOUT_S`），Gemini 最多 9 秒（`GEMINI_TIMEOUT_S`，重試也包含在內）。
-- Gemini 3 Flash 的 thinking 會拉長延遲。實際秒數**待估算**，第一次接上真的 Gemini 就要量。如果太慢，改設 `thinking_level=low`（大約改 1 行）。
-- 冷啟動另外量（Quinn）。
+公開未登入頁可顯示固定 Synthetic／Simulated 模板及預覽；preview 不是已落庫案件，也不是 reviewer。持久化流程與人工覆核須滿足後述 session／同案授權條件。
 
-## 10. 待決定／已知限制
+## 2. 原 RepSafe 模組保留
 
-| # | 事項 | 誰決定 |
-|---|---|---|
-| E1 | 截圖功能做不做（預設關閉；打開只要改一個環境變數，但前端和 QA 要多花 2–3 小時） | 老闆（PRD Q7） |
-| E2 | 紅卡優先於灰卡（第 3 節） | Paula、Quinn 確認 |
-| E3 | 工具改由程式強制執行，不用 function calling 迴圈（第 4 節） | 老闆知悉 |
-| E4 | `shp.ee` 是蝦皮官方的短網址，但按照會議共識，短網址一律不展開、直接列紅旗。真買家分享商品時可能會用到它，造成誤報 | Quinn 用評測集確認 |
-| E5 | 白名單比會議多收了蝦皮、Carousell 其他國家的官方網域；`shopee.com` 沒有放進白名單 | Quinn 確認完整清單 |
-| E6 | Web Risk 免費額度與超額單價、Gemini Flash 單次費用 | Felix 待查證 |
-| E7 | 前端還沒做，現在可以用 `/api/docs` 手動測試 | 10/6 起 |
+以下為原模組設計與此次讀取程式可核對的邊界；原始 69／98 項歷史測試數不作 FIN-SHIELD 驗收證據。
+
+| 檔案／入口 | 原責任與保留行為 |
+|---|---|
+| `app/main.py` | 保留 `/`、`/api/analyze`、`/api/config`、條件式 `/api/extract-text`；既有 `/health` 精確三欄 `{status, mode, url_reputation}`。模組旗標放 `/api/config` 的 `finshield_enabled`，不擴張 health |
+| `app/config.py` | 原 `AGENT_MODE`、網址後端、截圖及輸入限制；不以原 chat mode 推定新模組 mode |
+| `app/analyze.py` | 強制執行工具與注入防護、驗證 Gemini 結構化輸出、請求上限、只記 metadata |
+| `app/tools/domain_check.py` | 純程式網域／punycode／同形字／冒用判斷；短網址不展開 |
+| `app/tools/url_reputation.py` | Web Risk 或 fixture 介面；只查 URL 聲譽，不提供銀行帳戶或 KYC 判斷，不打開可疑網站 |
+| `app/gemini.py`、`app/prompt.py` | 原對話判斷／截圖 JSON schema；新增 investigator adapter 須保留原呼叫相容。評測樣本不得充當 prompt 範例 |
+| `app/verdict.py` | 只決定原對話卡 red／grey／amber；FIN-SHIELD 付款另由其規則／service 決定 |
+| `app/reply_filter.py` | 程式再次過濾網址、帳號、email、電話／長數字；不只依賴 prompt |
+| `app/offline_fixture.py`、`app/screenshot.py` | 保留離線標記、安全回覆範本與截圖讀字確認流程 |
+
+原對話是 tool-augmented Gemini：程式強制執行網域／URL 工具，不宣稱模型自主選工具。新 FIN-SHIELD 的真 AI 補查是獨立流程，不能用原模組的步驟標籤充當其完成證據。
+
+原判定優先序：有任何可驗紅旗 → red；沒有紅旗但模型／工具／配額等未完成 → grey；全部完成且無紅旗 → amber，仍提示不代表安全。Gemini 紅旗引用須能在原訊息中定位；驗證不符不得當有效紅旗。此處不更改原判定行為或 PRD 第 9 節的 33 則對話評測契約。
+
+截圖仍預設開啟，由 `SCREENSHOT_ENABLED` 控制；關閉時原讀字路由為 404。PNG／JPEG／WebP／HEIC／HEIF、10MB 限制沿原契約；先讀字、顯示預覽與文字供使用者確認，再送分析。原圖片／一般私訊不因加入新模組而自動保存，也不宣稱截圖鑑偽。
+
+## 3. FIN-SHIELD 資料與四個工具
+
+新增後端位於 `app/finshield/**`，包含具名資料模型、固定資料、規則、store、service、auth、tools、citations、investigator、settings 與 routes；程式由 Eddie 負責，UI 由 Dana 負責，獨立驗收由 Quinn 負責。
+
+兩個模板為 `risk-fee`／`normal-invoice`，資料版本 `fs-demo-v1`，政策 `DEMO-PAYMENT` v1，皆為合成示範。合成交易使用 SGD 不代表專案預算幣別；專案總預算仍為 USD 100。固定資料複製為每個 session 自有的 case bundle，重綁 case／transaction／source IDs；換版不能令舊案件引用失效，不能讓不同訪客共改同一案件。
+
+| 工具名 | 允許的讀取範圍 |
+|---|---|
+| `transactions` | 本案當前模擬付款、歷史 settled 交易與程式計算指標 |
+| `profile_kyc` | 同案固定合成客戶欄位／片段；缺少則回缺證，不推測身分 |
+| `known_relationships` | 有來源與時間的已知帳戶／設備連結；共享設備不等於共犯 |
+| `policy_case_history` | 指定版本政策及本案明確允許的合成前例；不是任意查其他案件 |
+
+工具只接受白名單工具名與 record ID，不接受任意 URL、路徑、SQL 或跨案 scope。後端同時驗事件時間及 recorded_at，排除 as_of 之後資料；金額採整數 minor units，current 與歷史分開，按唯一交易 ID 計算，不由 LLM 加總。
+
+引用包含 case／source／record／field／quote／dataset_version／policy_version／call_index，須對得上實際已回傳 evidence；fact_key／fact_value 亦需相符。不存在、跨案、未讀、錯版或錯片段一律拒收，合法 ID 不代表自然語言主張必然正確，語意另以測試及人工核對。
+
+## 4. 付款與調查分離
+
+| 付款起點／事件 | 付款結果 |
+|---|---|
+| 新案／待檢查 | `PENDING_CHECK`；每筆付款入口均須執行伺服器規則 |
+| 完整規則命中 | `HOLD_PENDING_REVIEW` |
+| 完整規則未命中 | `SIMULATED_PASSED`，不是安全保證 |
+| 必要輸入／policy 缺失或規則失敗 | `CHECK_FAILED`；不可用人工 approve 繞過必要檢查 |
+| HOLD + 有效 reviewer `approve` | `SIMULATED_PASSED` |
+| HOLD + 有效 reviewer `cancel` | `SIMULATED_CANCELLED` |
+| `keep_hold`／`escalate`／`dismiss` | 不解除 HOLD；dismiss 只處理警示記錄 |
+
+調查狀態只使用 `NOT_STARTED`、`RUNNING`、`READY`、`INCOMPLETE`。缺 KYC／工具逾時／無效引用／模型失敗或中斷使調查 INCOMPLETE，不改付款狀態；已依完整規則通過者亦不因此被說成犯罪。HOLD 是暫停本筆模擬付款，不是凍結帳戶或犯罪認定。
+
+LLM 只有四個 READ 工具，不持有付款或 review 寫入介面；VIP 追問、自然語言 approve、prompt injection 均不能改付款。人工操作必須使用獨立 ReviewCommand、有理由、版本與冪等鍵並留下審核。
+
+## 5. Session、覆核授權與公開回應
+
+- Session cookie `fs_session` 採 HttpOnly、Secure、SameSite=Strict、Path=/；服務端只保存 token hash，session 有效期 24h。知道 session ID 或 case ID 不代表有權讀寫。
+- Session bootstrap 驗精確 Origin；後續寫入還驗 cookie、JSON Content-Type、`X-CSRF-Token`。不開任意 CORS。HTTP 例外僅限明確的 loopback＋emulator 開發設定。
+- Reviewer secret 由操作者另行持有；伺服器核對 hash，再對此 session 已擁有的此案發 15 分鐘 grant。無公開預設 reviewer／secret，grant 不自動涵蓋以後的新案，每次 decision 重讀授權與版本。
+- UI 的 `permissions.can_review` 是伺服器回傳的顯示資訊，不是可自行提交的授權憑證。不能信任 body 中的 role／actor，未知欄位拒絕。
+- 登入失敗每 session 上限 5 次；secret 不放 URL、靜態檔、localStorage 或 logs。登入後清除表單秘密，422 等錯誤不得回顯 secret。
+- 公開 CaseRecord 必含 `case_id`、`version`、`payment_status`、`investigation_status`、`bundle`、`rule_result`、`result`、`events`，以及 `permissions.can_review`、`mode`；不含 session 資訊、token／key hashes、`operations`。
+- Findings 巢狀於 `result.report`。來源用 `bundle.sources` 及 `result.trace` 的實際 evidence 定位，前端不猜未回傳片段；無效模型輸出不得直接渲染。工具 trace 不是模型內部推理。
+
+## 6. HTTP 整合契約
+
+全部新 API 使用前綴 `/api/finshield`。下表依工程計畫，公共 CaseRecord 的安全投影及模式欄位依本次執行契約補充；後端／前端有差異須由 Controller 核對實際版本，不能默默更改文件中的狀態或授權要求。
+
+| Method + 相對路徑 | Request → response |
+|---|---|
+| POST `/sessions` | `{}` → `{csrf_token}`，同時設 session cookie；bootstrap 已驗 Origin |
+| POST `/cases` | `{template_id: 'risk-fee' \| 'normal-invoice'}` + Idempotency-Key → public CaseRecord |
+| GET `/cases/{id}` | 驗證 ownership → public CaseRecord；可回復已過期調查 lease |
+| POST `/cases/{id}/payment` | `{}` + Idempotency-Key → public CaseRecord，含已落庫規則結果 |
+| POST `/cases/{id}/investigation` | `{}` + Idempotency-Key → RunResult；同請求內等完成，UI 可再 GET 案件取得最新公開快照 |
+| POST `/review-login` | `{case_id, reviewer_id, secret}` → 204；由 server 授權此 session 的此案 |
+| POST `/cases/{id}/review` | ReviewCommand + Idempotency-Key → public CaseRecord |
+| POST `/cases/{id}/vip` | `{}` + Idempotency-Key → `{answer}`；一次固定追問，付款狀態不變 |
+| GET `/cases/{id}/report` | ownership 驗證 → JSON 案件報告及可定位來源；未完成照實列缺項 |
+
+ReviewCommand 為 `action`（approve／cancel／keep_hold／escalate／dismiss）、`reason`（trim 後 1–500 字元）、`expected_version`（≥0）、`evidence_refs`。可空引用，但理由須說明人工查核／缺證；不能在此 body 覆寫 actor、scope 或政策版本。
+
+冪等鍵長度 8–64、英數／連字號；同 key 同內容回原結果，同 key 異內容／版本衝突拒絕。調查重送且仍 RUNNING 回 409 `investigation_running`，由 GET 查詢；不重啟調查以規避上限。無 cookie 401、無 grant 403、跨案 404、偽造額外欄位 422，Origin／CSRF 不符 403；storage unavailable 回 503。ServiceError 統一 `{"error":{"code":"..."}}`，不帶密鑰或原始來源。
+
+## 7. Firestore 原子性與故障處理
+
+Firestore 保存 session、完整 bundle、案件版本／雙狀態、規則結果、報告、audit、冪等回應、run lease 與共享呼叫配額。Session／case 關係在建案時同一 transaction 寫入；付款／review 的授權、expected_version、狀態變更、audit 及冪等結果同一原子操作處理。LLM 呼叫不能放入可能重跑的 transaction callback。
+
+Firestore 讀取 timeout 3s、retry=None，transaction max_attempts=3；這些是工程計畫邊界，不保證固定端到端耗時。提交 timeout 若結果不確定，以原 key 查回，不換 key 猜測重送。儲存失敗不得 fallback 成功、刪 audit 或重新建案來繞過限制。
+
+每案 operations 最多 32、audit 最多 64，JSON document 最多 256 KiB；超限回 409 `case_capacity_reached`。儲存的冪等 response 不再包含 operations 本身，避免遞迴；對外公開投影完全移除 operations。
+
+調查使用獨立 HTTP request，在 request 存活期間等待完成；不用 response 後的 memory BackgroundTasks。持久化 lease 過期後於下次存取恢復為 INCOMPLETE，保留 HOLD／audit；晚到模型結果須核對 run_id，不能覆寫新狀態。原對話 warmup 設計不因本模組任意重寫。
+
+記憶體測試不能證明重啟耐久。驗收需獨立 write／read 程序、同一 run-id 與明確 emulator 或 Firestore backend，重查 HOLD／decision／RUNNING 恢復及原冪等請求。Emulator 通過也不能當作真雲端通過。
+
+## 8. 模式、呼叫上限與部署設定邊界
+
+| 設定／邊界 | 契約 |
+|---|---|
+| `FINSHIELD_ENABLED=false` | 預設關閉；新頁／資產／API 為 404，不因未啟用模組建立 Firestore client |
+| `FINSHIELD_MODEL_MODE=offline_fixture\|gemini` | 新模組獨立選擇；與 `AGENT_MODE` 分開，不靜默從真模型降階成 fixture |
+| `FINSHIELD_LIVE_CALLS_ENABLED=false`、`FINSHIELD_MODEL_CALL_CAP=0` | 預設禁止真模型呼叫；選 gemini 也不解除預算／授權界限 |
+| budget_id／配額 | 真呼叫前由 durable transaction 扣核准額度，跨 session／instance 共用，失敗不退額、不每天自動補額；cap=0／缺 budget_id／耗盡拒絕 |
+| 主調查 | 每案僅一次；最多 5 次 model call、4 次 tool call；單模型 9s、tool 1s、總 deadline 45s、lease 60s |
+| 輸入／輸出 | retry=0、單次輸出最多 2048 tokens；輸入 JSON ≤32 KiB、每次工具輸出 ≤8 KiB／20 records |
+| VIP | 最多再 1 次 model call／9s，不開新工具；先 durable claim，失敗 unavailable，不再扣額重試 |
+
+Offline investigator 產生可回查證據的固定合成流程，必須顯示 `offline_fixture` 及非真 AI 標記；READY 僅表示該示範流程完成，不能計為 AC-03／G1 真 agentic 成果。Gemini 驗收須記錄前次工具結果導致的下一次查詢、模型／mode／耗時與用量；四工具固定全跑或播放 fixture 都不算。
+
+Vercel 上的實際 request 限制須容納上述 bounded loop；若無法滿足，Controller 應回報不相容及未完成項，不延長隱性工作、不削掉驗收或自行升級方案。憑證與 reviewer hashes 只由伺服器環境提供，不能把 Cloud Run 服務帳號自動存在的假設套用到 Vercel。
+
+原對話環境仍使用 `AGENT_MODE`／`URL_REPUTATION_BACKEND`，Cloud Run 的原部署及成本限制見 [部署文件](deploy.md)。原記憶體 rate limiter 為每實例計數，不能當作跨 Vercel instance 的成本硬上限。原 10 秒對話延遲目標與新調查 45 秒 deadline 分開量測；兩者均非本文件宣告實測達標。
+
+## 9. 隱私、驗收與交接
+
+一般對話／截圖不自動入庫，服務 log 僅含必要 metadata／錯誤 code；不記原私訊、KYC、cookie、token、reviewer secret 或原始模型輸出。FIN-SHIELD 持久化的是明標合成的 case bundle、引用與 audit，仍受 session scope 保護。前端呈現來源用文字而非執行內嵌 HTML。
+
+真實案例及密鑰不進公開 repo／影片；沿用 `data/real_cases/`、`data/private/` 的私有資料邊界及忽略設定，不複製私人 .env。安全回覆仍可能濾掉日期／長數字，這是原模組已知取捨，不是新調查引用欄位的規則。
+
+| 驗證層 | 必須保留的證據／限制 |
+|---|---|
+| 原對話回歸 | 首頁、截圖預覽／讀字確認、判定與安全回覆、精確三欄 health；不以此代替新模組測試 |
+| 離線新契約 | 兩案規則、狀態／權限、Origin／CSRF、無效 citation、注入／VIP、冪等／併發及 UI；只能證明對應離線行為 |
+| 持久化 | Firestore emulator 與真雲端各自記錄，獨立程序 restart probe；缺真雲端測試列未完成 |
+| 真 Gemini | 前一步 evidence 驅動補查 trace、模型／mode／token／耗時；缺憑證或 cap=0 則待測 |
+| 線上整合 | Controller 核對 Vercel URL／版本、公開預覽與不可用提示、授權 reviewer 流程、部署設定及中英文件一致性 |
+
+上述均為交接驗收契約，結果由實際命令與執行版本填入，不預寫 G0–G3 全通過。USD 100 為總上限，歷史 25 小時為全專案總工時限制；已用／剩餘尚待核對，原架構的 24／22 小時估算及「餘裕 1 小時」不能視為今日可用額。
+
+角色邊界、時程／LineSleuth 衝突與 G0–G3 定義見 [roadmap](../roadmap.md)，產品需求及 AC-01–11 見 [PRD](../prd.md)。Paula 的文件檢查與離線回歸報告只證明該次檢查，不替其他角色或 Controller 宣告實作完成。

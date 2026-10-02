@@ -1,0 +1,28 @@
+# Do not upload local credentials, private cases, or team tooling.
+.git
+.venv
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*credentials*.json
+*service-account*.json
+*-sa-key*.json
+application_default_credentials.json
+.claude
+.agents
+.codex
+.superpowers
+.vercel
+.pytest_cache
+**/__pycache__
+**/*.pyc
+node_modules
+data/private
+data/real_cases
+eval
+docs
+tests
+scripts
+# Keep app/static and app/finshield/fixtures: they are runtime assets.

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "fastapi",
+  "regions": ["sin1"],
+  "functions": {
+    "app/main.py": {
+      "maxDuration": 60,
+      "excludeFiles": "{tests/**,docs/**,eval/**,scripts/**,.superpowers/**,.agents/**,.claude/**,.codex/**,.venv/**,data/private/**,data/real_cases/**}"
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {"key": "X-Content-Type-Options", "value": "nosniff"},
+        {"key": "Referrer-Policy", "value": "same-origin"},
+        {"key": "X-Frame-Options", "value": "DENY"}
+      ]
+    },
+    {
+      "source": "/api/finshield/(.*)",
+      "headers": [{"key": "Cache-Control", "value": "no-store"}]
+    }
+  ]
+}

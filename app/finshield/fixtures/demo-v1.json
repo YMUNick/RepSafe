@@ -1,0 +1,37 @@
+{
+  "dataset_version": "fs-demo-v1",
+  "as_of": "2026-10-02T04:00:00Z",
+  "policy": {"policy_id": "DEMO-PAYMENT", "policy_version": "1", "effective_at": "2026-10-01T00:00:00Z", "fee_min_minor": 50000, "window_minutes": 20, "history_min_count": 3, "history_min_minor": 200000},
+  "templates": {
+    "risk-fee": {
+      "prefix": "risk", "customer_id": "risk-customer", "payer_account_id": "risk-payer", "recipient_account_id": "risk-recipient",
+      "conversation": "Pay a verification fee before receiving your sale proceeds.",
+      "current": {"transaction_id": "risk-current", "amount_minor": 50000, "currency": "SGD", "purpose": "verification_fee", "invoice_verified": false, "at": "2026-10-02T04:00:00Z", "recorded_at": "2026-10-02T04:00:00Z"},
+      "history": [
+        {"transaction_id": "risk-h1", "amount_minor": 120000, "at": "2026-10-02T03:45:00Z", "recorded_at": "2026-10-02T03:45:00Z", "currency": "SGD", "status": "SETTLED"},
+        {"transaction_id": "risk-h2", "amount_minor": 90000, "at": "2026-10-02T03:50:00Z", "recorded_at": "2026-10-02T03:50:00Z", "currency": "SGD", "status": "SETTLED"},
+        {"transaction_id": "risk-h3", "amount_minor": 60000, "at": "2026-10-02T03:55:00Z", "recorded_at": "2026-10-02T03:55:00Z", "currency": "SGD", "status": "SETTLED"}
+      ],
+      "profile": "The recipient purpose could not be verified. This does not establish criminal activity.",
+      "relationship": "A shared device is recorded in this synthetic case. A known link does not establish identity or guilt.",
+      "relationship_record": {"device_id": "risk-device-01", "source_system": "Synthetic platform device-link log", "at": "2026-10-02T03:52:00Z", "recorded_at": "2026-10-02T03:53:00Z"},
+      "precedent": "Synthetic verification-fee precedent: request manual review; no finding of crime.",
+      "expected": {"payment_status": "HOLD_PENDING_REVIEW", "count": 3, "total_minor": 270000}
+    },
+    "normal-invoice": {
+      "prefix": "normal", "customer_id": "normal-customer", "payer_account_id": "normal-payer", "recipient_account_id": "normal-recipient",
+      "conversation": "Please pay invoice INV-N-1 for the service already delivered.",
+      "current": {"transaction_id": "normal-current", "amount_minor": 50000, "currency": "SGD", "purpose": "service_fee", "invoice_verified": true, "at": "2026-10-02T04:00:00Z", "recorded_at": "2026-10-02T04:00:00Z"},
+      "history": [
+        {"transaction_id": "normal-h1", "amount_minor": 120000, "at": "2026-10-02T03:45:00Z", "recorded_at": "2026-10-02T03:45:00Z", "currency": "SGD", "status": "SETTLED"},
+        {"transaction_id": "normal-h2", "amount_minor": 90000, "at": "2026-10-02T03:50:00Z", "recorded_at": "2026-10-02T03:50:00Z", "currency": "SGD", "status": "SETTLED"},
+        {"transaction_id": "normal-h3", "amount_minor": 60000, "at": "2026-10-02T03:55:00Z", "recorded_at": "2026-10-02T03:55:00Z", "currency": "SGD", "status": "SETTLED"}
+      ],
+      "profile": "Invoice INV-N-1 matches the contracted service.",
+      "relationship": "A shared terminal is used at the coworking reception.",
+      "relationship_record": {"device_id": "normal-terminal-01", "source_system": "Synthetic platform device-link log", "at": "2026-10-02T03:51:00Z", "recorded_at": "2026-10-02T03:52:00Z"},
+      "precedent": "Synthetic service-invoice precedent: verified commercial purpose is counter-evidence.",
+      "expected": {"payment_status": "SIMULATED_PASSED", "count": 3, "total_minor": 270000}
+    }
+  }
+}

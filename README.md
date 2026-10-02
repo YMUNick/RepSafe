@@ -1,121 +1,111 @@
-# RepSafe (working name / 暫定名)
+# RepSafe × FIN-SHIELD
 
-> Reply safe. Keep your rep.
+[English](README.md) | [繁體中文](README.zh-TW.md)
 
-**Language / 語言**: [English](#english) · [繁體中文](#繁體中文)
+From a seller's suspicious conversation to a payment investigation, with traceable evidence and human review.
 
----
+RepSafe retains the seller-facing entry point for pasted conversations, screenshot text extraction and reply drafts. FIN-SHIELD is its investigation module for e-commerce platforms with wallet or payment-collection capabilities. It brings together transactions, customer information, known relationships and demonstration policies. Risk analysts use it; risk and operations leads are prospective buyers; sellers are the people it aims to protect. Workflow demand, time savings and willingness to pay remain unverified.
 
-## English
+## Current status
 
-### What it is
+2026-10-02: parallel implementation and integration are underway. These instructions are ready to configure against the integrated build; live verification is pending. The Vercel CLI is ready, user authentication is pending, and the controller is adding native FastAPI deployment with Python 3.12 in `sin1`. A public Vercel URL will be added only after the integration owner supplies a verified deployment. Documentation completion does not establish a successful deployment, real AI execution or a G0–G3 pass.
 
-RepSafe helps small online sellers (Shopee, Carousell and similar marketplaces) spot a fake buyer's phishing link or scam script **before they reply**, and hands them a safe reply they can copy and send.
+- Every case, KYC record, policy and payment is Synthetic / Simulated. There are no real transfers, bank-payment interception, account freezes or AML filings.
+- FIN-SHIELD is disabled by default, with a model-call cap of 0. Public previews may show synthetic templates; persistent case operations and review require backend configuration and appropriate authorization.
+- `offline_fixture` is a deterministic, evidence-linked workflow demonstration. It is not real Gemini, agentic AI or evidence of a G1 pass.
+- Real Gemini follow-up, Firestore restart durability, full security testing and Vercel verification need results for this revision under the [QA plan](docs/qa/test-plan.md) and [roadmap](docs/roadmap.md).
+- The total project budget ceiling is USD 100. Actual spending, remaining funds and billing currency still need reconciliation; the ceiling is not the remaining balance. Time limits and scheduling are tracked in the [budget](docs/finance/budget.md) and roadmap.
 
-Scammers pose as buyers and push sellers toward "verify your payment guarantee" links, off-platform payments, or chats on LINE, WhatsApp or Facebook, where the marketplace's own warnings can't follow. Consumer-side tools (Whoscall, Gogolook, ScamShield) already exist; RepSafe is built for the **seller side**, and works across platforms.
+## How it works
 
-- **Competition**: AI Builder Cup 2026 (Hack2skill × Google Cloud, JAPAC), BFSI track (fallback: Retail & Commerce). Submission deadline 2026-10-18.
-- **How it works**: the seller pastes a chat or uploads a screenshot → Gemini Flash returns structured output (scam type, red-flag sentences, safe reply) → two checks run on **every** link, enforced in code rather than left to the model: Google Cloud **Web Risk** URL reputation, and a **look-alike domain** check (punycode decoding plus character-distance matching against official marketplace domains) → a verdict card, a list of red flags and a copy-ready safe reply.
-- **Verdict states**: red "Scam red flags found", amber "No red flags found" (always shown with *"This doesn't mean it's safe"*), grey "Can't determine". Green is never used for a verdict.
-- **Safety by design**: links are never opened or expanded (short links are flagged as they are); URLs and account IDs are stripped from the safe reply in code; chat content is never logged; if any check fails, the result is grey rather than amber.
-- **Stack**: Python 3.11, FastAPI, Vertex AI Gemini, Web Risk API, Cloud Run. It uses no API keys; authentication goes through Application Default Credentials.
-- **Name**: "Rep" reads as both *Reply* and *Reputation*. Trademark and domain checks are still pending.
+1. Conversation clues connect to a fixed synthetic case. Server-side, versioned rules check every simulated payment, whether or not someone viewed the warning.
+2. A rule hit produces `HOLD_PENDING_REVIEW`; a complete check without a hit produces `SIMULATED_PASSED`; a failed payment check produces `CHECK_FAILED`.
+3. An Investigator can read four authorized sources within the case: transactions, customer/KYC information, known relationships, and policy/history. It assembles findings, counter-evidence, missing information, policy basis and suggested next steps. Valid citations should open the source and the evidence returned by the tools.
+4. An authorized reviewer makes an explicit decision with a reason; the case version and audit events preserve the action. AI, a VIP question, Dismiss alert and Escalate cannot release a hold.
 
-### Status (2026-09-24)
+Payment and investigation status are separate. Investigation can be `NOT_STARTED`, `RUNNING`, `READY` or `INCOMPLETE`; model or tool failures must show missing evidence and leave a held payment on hold. `SIMULATED_PASSED` means this simulated rule check passed, not that a payment is safe or lawful.
 
-- **Live demo (offline mode)**: https://repsafe-195979831646.asia-southeast1.run.app (Cloud Run, `asia-southeast1`). Verdicts currently come from keyword rules, not Gemini; the page says so at the top. See `docs/engineering/deploy.md`.
-- The backend skeleton and the single-page mobile UI both work in **offline mode**; the unit tests pass. Real Gemini and Web Risk are not connected yet; the deployed service runs in offline mode.
-- Two gates must pass before full development continues: the organizers must allow a second entry, and at least 3 real, consented seller cases must be collected by 9/29.
-- The time budget is 25 hours, with a target of 10/11. See `docs/roadmap.md`.
+## Run locally
 
-### Run locally
+Use Python 3.11 from the repository root. These defaults run the existing RepSafe offline experience without a cloud account.
 
-You need Python 3.11. Offline mode needs no GCP account. Its verdicts come from keyword rules and every response is labelled `offline_fixture`, so **don't use them for demos or accuracy claims**.
-
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate            # macOS/Linux: source .venv/bin/activate
-pip install -r requirements-dev.txt
-copy .env.example .env            # macOS/Linux: cp .env.example .env
-uvicorn app.main:app --reload
+.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+# Copy only if no local .env exists; preserve existing local settings.
+if (-not (Test-Path -LiteralPath '.env')) { Copy-Item -LiteralPath '.env.example' -Destination '.env' }
+$env:AGENT_MODE='offline_fixture'
+$env:URL_REPUTATION_BACKEND='fixture'
+$env:FINSHIELD_ENABLED='false'
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-- UI: http://127.0.0.1:8000/
-- Health check (also used to warm up the service): http://127.0.0.1:8000/health
-- API docs: http://127.0.0.1:8000/api/docs (`POST /api/analyze` with `{"text": "..."}`)
-- Tests: `pytest -q`. Outbound network access is blocked during tests, so any attempt to open a link fails the suite.
-- Offline eval: `python scripts/run_eval.py --offline --edge`. Without `--offline` the script calls real Gemini, and it exits with an error if `GOOGLE_CLOUD_PROJECT` is not set.
-- Connecting real services: run `gcloud auth application-default login`, then set `AGENT_MODE=gemini`, `URL_REPUTATION_BACKEND=webrisk` and `GOOGLE_CLOUD_PROJECT` in `.env`.
-- Screenshot input is on by default. Set `SCREENSHOT_ENABLED=false` to turn it off. The screenshot preview is rendered only in the browser.
-- Real seller screenshots belong only in `data/real_cases/`, which git ignores. Get written consent and redact them first.
+On macOS/Linux use `.venv/bin/python` and `export` for environment variables. See [.env.example](.env.example) for configuration.
 
-### Documentation
+- [RepSafe homepage](http://127.0.0.1:8000/): conversation and screenshot entry, including upload and local preview; extracted text is confirmed before analysis. Screenshot extraction does not authenticate payment proof. The local default is 10 MB per image; Vercel uses a 3 MB raw-image limit. The UI should display the limit returned by `/api/config`.
+- [Health](http://127.0.0.1:8000/health): the existing `status`, `mode` and `url_reputation` fields. This endpoint does not establish FIN-SHIELD model or storage readiness.
+- [API documentation](http://127.0.0.1:8000/api/docs): FIN-SHIELD API paths start with `/api/finshield`.
+- [FIN-SHIELD](http://127.0.0.1:8000/finshield): available after configuration and explicit enablement; a 404 is expected while the feature is disabled.
 
-Project docs are written in Traditional Chinese, except the pitch material and the organizer inquiry, which are in English. The index is in the [繁體中文](#繁體中文) section below.
+For the full synthetic case workflow, configure the origin, Firestore and reviewer authorization using the [deployment guide](docs/engineering/deploy.md). Online cases and review require Firestore even when the model uses offline fixtures. An explicitly injected local fake is for tests/development; missing credentials must produce an unavailable state, not a silent fallback to memory or SQLite on Vercel.
 
-| Area | File |
+## Model and environment configuration
+
+| Setting | Purpose and default |
 |---|---|
-| Product requirements / Roadmap | `docs/prd.md`, `docs/roadmap.md` |
-| Architecture / Deployment | `docs/engineering/architecture.md`, `docs/engineering/deploy.md` |
-| UI spec / Video storyboard | `docs/design/ui-spec.md`, `docs/design/storyboard.md` |
-| Pitch script (English) | `docs/pitch/pitch-script.md` |
-| Seller outreach / Data sources | `docs/sales/seller-outreach.md`, `docs/sales/data-sources.md` |
-| Budget | `docs/finance/budget.md` |
-| Test plan / Bugs / Organizer inquiry | `docs/qa/test-plan.md`, `docs/qa/bugs.md`, `docs/qa/organizer-inquiry-draft.md` |
-| Eval set (synthetic, defanged URLs) | `eval/cases.jsonl`, `eval/edge_cases.jsonl`, `scripts/run_eval.py` |
+| `FINSHIELD_ENABLED=false` | Keeps the module disabled until explicitly configured |
+| `FINSHIELD_MODEL_MODE=offline_fixture` | Deterministic synthetic workflow; `gemini` selects the real-model mode |
+| `FINSHIELD_LIVE_CALLS_ENABLED=false` | Disallows live model calls; selecting a mode alone does not enable paid calls |
+| `FINSHIELD_MODEL_CALL_CAP=0` | Zero calls by default; set a finite allowance only for an authorized run |
+| `FINSHIELD_BUDGET_ID` | Identifies an authorized run against durable call accounting, without automatic daily replenishment |
+| `FINSHIELD_ALLOWED_ORIGIN` | Exact deployment HTTPS origin for cookie, CSRF and Origin enforcement |
+| `AGENT_MODE` / `URL_REPUTATION_BACKEND` | Existing RepSafe conversation and URL-check settings; separate from FIN-SHIELD model mode |
+| `MAX_IMAGE_MB` | Keep the local default of `10`; set `3` on Vercel because base64 JSON expands the upload within its 4.5 MB request-body limit. Upload and preview remain available; UI limits follow `/api/config` |
+| `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` / `GEMINI_MODEL` | Server-side real-model configuration; verify usable model and credentials in the deployment guide |
 
----
+Reviewer secrets, Firestore configuration and cloud credentials stay server-side; use the integrated `.env.example` and deployment guide for their exact fields. Public visitors do not automatically become reviewers. Reviewer status still requires access to the specific case. Mutating API calls also enforce session, CSRF, Origin, case-version and idempotency requirements.
 
-## 繁體中文
+## Walk through two synthetic cases
 
-幫蝦皮、Carousell 小賣家在回覆前看出假買家的釣魚連結與話術，並直接給一段可以複製的安全回覆。
+Prerequisite: open `/finshield` and check its Synthetic / Simulated and model-mode labels. Without storage or authorization, show only a clearly labelled preview; do not present that preview as a persisted case or completed review. These are verification steps for a configured build, not claimed passing results.
 
-- 比賽：AI Builder Cup 2026，BFSI 賽道（備案 Retail & Commerce），繳交截止 10/18
-- 形式：手機直向單畫面、英文介面；Gemini Flash 結構化輸出＋兩個程式強制執行的工具（Web Risk 網址信譽查詢、網域冒用比對）；部署在 Cloud Run
-- 定位：老闆的第二件作品。工時上限 25 小時，10/11 前完成，10/12 起交還姊妹專案 LineSleuth
-- 名稱：Rep 同時讀作 Reply 與 Reputation。商標與網域待查
+1. High-risk case `risk-fee`: create a case, inspect the fake payment-verification conversation and payment sources, then submit the simulated payment. Check that rules produce `HOLD_PENDING_REVIEW`. Run the investigation and open the cited evidence, counter-evidence and gaps. Ask whether VIP status permits release; the hold must remain. Only an authorized reviewer can explicitly Approve held payment, Keep hold, Escalate or Cancel payment with a reason; inspect the audit event. Dismiss alert handles the warning without releasing payment.
+2. Normal case `normal-invoice`: create a separate case, inspect the invoice and reasonable business explanation, then submit the simulated payment. A complete check without a rule hit should produce `SIMULATED_PASSED`. Inspect the investigation's counter-evidence; shared devices must not be treated as proof of collusion. Verify this case's own sources and states rather than carrying over the first case's citations or review actions.
 
-### 狀態
+Offline mode can rehearse this workflow. A real-AI demonstration requires an actual Gemini trace showing a follow-up chosen from the previous tool result; G1 also requires every other acceptance check. Thirty seconds is an editing/demo target, not a measured latency guarantee.
 
-**線上 demo（離線模式）**：https://repsafe-195979831646.asia-southeast1.run.app （Cloud Run、新加坡區）。目前判定來自關鍵字規則，不是 Gemini；部署與切換方式見 `docs/engineering/deploy.md`。
+## Configure Vercel and verify deployment
 
-**2026-09-24**：後端骨架與單頁前端在離線模式可以跑，單元測試通過；還沒接真的 Gemini、Web Risk；線上版目前是離線模式。要先過兩道關卡：主辦允許交兩件（9/30）、9/29 晚上盤點到 ≥ 3 則真實案例。詳見 `docs/roadmap.md`。
+Status: ready to prepare configuration; live verification pending. The integration owner's [deployment guide](docs/engineering/deploy.md) is authoritative for the final entry point, credential fields and results. Historical Cloud Run records do not establish a Vercel deployment.
 
-已拍板（2026-09-24）：截圖上傳納入 MVP（含瀏覽器本機預覽）、GCP 預算上限 100 SGD（帳單幣別；已設警示）、影片開場用新加坡／東南亞案例、工時超支先精簡影片後製。
+1. Complete Vercel user authentication, then import the GitHub repository. Select the root containing `app/` and `requirements.txt`, using the controller's native FastAPI configuration with Python 3.12 in `sin1`. Preserve `/` for the existing chat and use `/finshield` for the new page.
+2. Set server-side environment variables separately for Preview and Production. Start with `FINSHIELD_MODEL_MODE=offline_fixture`, `FINSHIELD_LIVE_CALLS_ENABLED=false` and `FINSHIELD_MODEL_CALL_CAP=0`; set `MAX_IMAGE_MB=3` on Vercel, retaining the local default of 10. The deployment owner confirms existing cloud resources and credentials; this does not require automatically upgrading to a paid plan.
+3. Configure working Firestore access, the exact HTTPS origin and a reviewer secret before enabling full case operations. Do not substitute memory or SQLite on Vercel for durable online state, or put secrets in frontend files, GitHub or `.env.example`.
+4. After deployment, verify `/`, `/health`, `/finshield` and its static assets, screenshot upload/preview and the `/api/config` size limit, then both cases, session isolation, unauthorized review rejection, CSRF/Origin rejection, retries and restart persistence. Missing credentials must show an explicit unavailable/unconfigured state.
+5. Real Gemini testing separately requires valid credentials, an authorized call budget and recorded results. Add a public URL and completion claims only after the integration owner verifies the deployed revision and evidence.
 
-### 本機啟動
+## Verification and data
 
-需要 Python 3.11。離線模式不需要 GCP（`.env.example` 的預設值）；判斷結果來自關鍵字規則，每個回應都會標 `offline_fixture`，**不能拿來 demo 或評測**。啟動指令見上方英文段落。
+```powershell
+.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe scripts/run_eval.py --offline --edge
+```
 
-- 前端頁面：http://127.0.0.1:8000/
-- 健康檢查（也用來暖機）：http://127.0.0.1:8000/health
-- 手動測試分析 API：http://127.0.0.1:8000/api/docs → `POST /api/analyze`，body 為 `{"text": "..."}`
-- 跑測試：`pytest -q`（測試期間會封鎖對外連線，任何開連結的行為都會讓測試失敗）
-- 離線評測：`python scripts/run_eval.py --offline --edge`（不帶 `--offline` 時會用真 Gemini；沒設定 `GOOGLE_CLOUD_PROJECT` 會直接報錯結束，不會跑出整排灰卡）
-- 接真的 Gemini 和 Web Risk：先執行 `gcloud auth application-default login`，再在 `.env` 設定 `AGENT_MODE=gemini`、`URL_REPUTATION_BACKEND=webrisk`、`GOOGLE_CLOUD_PROJECT`。整個專案不使用 API key。
-- 截圖輸入：預設開啟；離線模式回固定範例文字，不呼叫 GCP。設 `SCREENSHOT_ENABLED=false` 可關閉
-- 真實截圖只能放在 `data/real_cases/`（已被 git 忽略），並且要先取得書面同意、打碼
+The first command runs local tests; the second checks the existing conversation workflow offline. Listing commands does not mean they ran or passed. Report the conversation baseline, new financial cases, Firestore durability and real-model results separately. Local fakes/fixtures do not prove cloud or agentic behavior. Consult the QA documents for actual results and gaps.
 
-### 文件索引
+Public data uses synthetic cases and demonstration policies only; demonstration policies are not regulations. Interview transcripts, contacts, consent and workflow notes belong only in `data/private/`; existing consented and redacted seller cases belong in ignored `data/real_cases/`. Neither private directory may be deployed or published. See [outreach and data handling](docs/sales/seller-outreach.md).
 
-| 文件 | 內容 | 負責 |
-|---|---|---|
-| `docs/prd.md` | 產品需求：定位、MVP 做／不做、判定卡三態、驗收門檻、demo 劇本、工時配置 | Paula |
-| `docs/roadmap.md` | 9/24–10/11 時程、停損點、老闆必做事項 | Paula |
-| `docs/meetings/2026-09-24-電商客服反詐騙.md` | 立案會議紀錄與會後拍板 | — |
-| `docs/meetings/2026-09-24-剩餘工作盤點.md` | 剩餘工作盤點：完成度約六成、凍結規則、最終時程、各角色待辦、待老闆決定的兩個門檻 | — |
-| `docs/engineering/architecture.md` | 架構、模組、判定三態規則、安全設計、工時重估、部署設定、待決定事項 | Eddie |
-| `docs/engineering/deploy.md` | Cloud Run 部署紀錄：專案、網址、設定、重新部署指令、切換真 Gemini 步驟 | Eddie |
-| `docs/design/ui-spec.md` | 手機單畫面規格：版面、色彩與字體 token、輸入區（含截圖預覽）、四步驟標籤、判定卡三態、英文 UI 文案定稿、各狀態、API JSON 欄位對照 | Dana |
-| `docs/design/storyboard.md` | 3 分鐘影片分鏡：時間碼、畫面、英文旁白與字幕；開場用新加坡／東南亞案例、demo 用訊息、錄影前檢查清單 | Dana |
-| `app/static/index.html` | 單檔靜態前端（純 HTML/CSS/JS、沒有建置步驟），由 `/` 提供，呼叫 `/api/config`、`/api/analyze`、`/api/extract-text` | Dana |
-| `docs/sales/seller-outreach.md` | 9/25–9/29 真實案例徵集：各管道中英文貼文範本、書面同意書範本（中英）、打碼規則與存放位置、20 分鐘訪談題目（含每月願付多少）、9/29 盤點表格式 | Sandy |
-| `docs/sales/data-sources.md` | 影片與 pitch 需要的公開統計清單、建議查找的官方來源、使用規則、找不到時的備用說法；目前全部「待驗證」 | Sandy |
-| `docs/pitch/pitch-script.md` | Pitch 三句英文定稿＋中文對照、3 分鐘真人講稿（對齊分鏡格 ①–⑥）、競品與常見質疑的一句話回應、紅線、排練清單 | Sandy |
-| `docs/finance/budget.md` | 獨立 GCP 專案、預算上限 100 SGD、50／90／100% 警示設定步驟、警示不會停止扣款的四道防線、成本項目清單（單價全部待查證）、單次分析成本公式、各期間呼叫次數估算、工時配置與上限檢查 | Felix |
-| `docs/finance/timesheet.csv` | 工時記帳表格式（五類：後端／評測／前端／部署影片／找賣家）；實際記帳建議放 `data/private/`，不 commit | Felix |
-| `docs/qa/test-plan.md` | 測試策略、33 則評測集組成、判定規則（灰卡算漏報、失敗 fallback）、驗收門檻、盲測規則、熱機／冷啟動量測、上線前檢查清單 | Quinn |
-| `docs/qa/bugs.md` | Bug 與改善建議清單（交給 Eddie），對應 `tests/test_qa_adversarial.py` 的 strict xfail | Quinn |
-| `docs/qa/organizer-inquiry-draft.md` | 寄主辦的英文詢問信草稿＋回覆後的決策表 | Quinn |
-| `eval/cases.jsonl`、`eval/edge_cases.jsonl` | 33 則合成評測集（20 詐騙／10 正常／3 injection）＋8 則不計分邊緣集；網址全部 defang（`hxxps://`）、只用保留網域 | Quinn |
-| `scripts/run_eval.py` | 評測腳本：`--offline`（只驗流程與程式工具，不是 Gemini 準確率）、預設真 Gemini、`--url` 打 Cloud Run 量熱機延遲；結果寫到 `eval/results/`（不進 git） | Quinn |
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| [PRD](docs/prd.md) · [Roadmap](docs/roadmap.md) | Personas, scope, state semantics and G0–G3 |
+| [Architecture](docs/engineering/architecture.md) · [Deployment](docs/engineering/deploy.md) | APIs, storage, permissions, configuration and deployment evidence |
+| [UI specification](docs/design/ui-spec.md) · [Storyboard](docs/design/storyboard.md) | English UI, evidence and simulation labels |
+| [English pitch](docs/pitch/pitch-script.md) | Product narrative, demonstration script and FAQ |
+| [Outreach templates](docs/sales/seller-outreach.md) · [Source register](docs/sales/data-sources.md) | Analyst/buyer/seller validation and claim boundaries |
+| [Budget](docs/finance/budget.md) | USD 100 ceiling, costs and reconciliation gaps |
+| [Test plan](docs/qa/test-plan.md) · [Bugs](docs/qa/bugs.md) | Coverage, actual results and open issues |
+| [Integration meeting](docs/meetings/2026-10-02-FIN-SHIELD整合評估.md) · [Engineering plan](docs/superpowers/plans/2026-10-02-finshield-48h-core.md) | Design rationale and historical decisions; current execution follows updated specifications |
+
+RepSafe and FIN-SHIELD are working names. Existing products also offer investigation summaries and agentic capabilities. Connecting conversation clues to case evidence is a differentiation hypothesis, not a claim of market novelty, measured impact or proven demand.

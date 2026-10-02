@@ -13,6 +13,9 @@ for _line in (Path(__file__).resolve().parents[1] / ".env.example").read_text(en
         os.environ[_key.strip()] = _value.strip()
 os.environ["AGENT_MODE"] = "offline_fixture"
 os.environ["URL_REPUTATION_BACKEND"] = "fixture"
+os.environ["FINSHIELD_ENABLED"] = "false"
+os.environ["FINSHIELD_LIVE_CALLS_ENABLED"] = "false"
+os.environ["FINSHIELD_MODEL_CALL_CAP"] = "0"
 
 _LOOPBACK = ("localhost", "127.0.0.1", "::1")
 
