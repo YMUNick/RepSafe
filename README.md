@@ -8,12 +8,12 @@ RepSafe retains the seller-facing entry point for pasted conversations, screensh
 
 ## Current status
 
-2026-10-02: parallel implementation and integration are underway. These instructions are ready to configure against the integrated build; live verification is pending. The Vercel CLI is ready, user authentication is pending, and the controller is adding native FastAPI deployment with Python 3.12 in `sin1`. A public Vercel URL will be added only after the integration owner supplies a verified deployment. Documentation completion does not establish a successful deployment, real AI execution or a G0–G3 pass.
+2026-10-02: the integrated synthetic workflow is deployed on Vercel (Python 3.12, Singapore `sin1`, existing Hobby plan). Open the [FIN-SHIELD analyst demo](https://repsafe-finshield.vercel.app/finshield) or [RepSafe seller assistant](https://repsafe-finshield.vercel.app/). The runtime code is commit `2d9c92e`; later documentation commits record deployment evidence. Tests: **255 passed, 2 emulator-dependent skips**. Hosted HTTP checks cover both cases, evidence citations, session isolation, CSRF and unauthorized review rejection. Detailed evidence and remaining gaps are in the [deployment guide](docs/engineering/deploy.md).
 
 - Every case, KYC record, policy and payment is Synthetic / Simulated. There are no real transfers, bank-payment interception, account freezes or AML filings.
-- FIN-SHIELD is disabled by default, with a model-call cap of 0. Public previews may show synthetic templates; persistent case operations and review require backend configuration and appropriate authorization.
+- Repository defaults keep FIN-SHIELD disabled. This public deployment explicitly enables the synthetic case workflow with real Firestore persistence and a model-call cap of 0. Private reviewer credentials are not yet provisioned; public visitors cannot approve or cancel payments.
 - `offline_fixture` is a deterministic, evidence-linked workflow demonstration. It is not real Gemini, agentic AI or evidence of a G1 pass.
-- Real Gemini follow-up, Firestore restart durability, full security testing and Vercel verification need results for this revision under the [QA plan](docs/qa/test-plan.md) and [roadmap](docs/roadmap.md).
+- Real Firestore passed a separate-process, 16-check durability probe. Real Gemini follow-up, human semantic evaluation, full security testing and G0–G3 acceptance are **not completed**; see the [QA plan](docs/qa/test-plan.md) and [roadmap](docs/roadmap.md). A deployed fixture is not a finished AI submission.
 - The total project budget ceiling is USD 100. Actual spending, remaining funds and billing currency still need reconciliation; the ceiling is not the remaining balance. Time limits and scheduling are tracked in the [budget](docs/finance/budget.md) and roadmap.
 
 ## How it works
@@ -76,9 +76,9 @@ Offline mode can rehearse this workflow. A real-AI demonstration requires an act
 
 ## Configure Vercel and verify deployment
 
-Status: ready to prepare configuration; live verification pending. The integration owner's [deployment guide](docs/engineering/deploy.md) is authoritative for the final entry point, credential fields and results. Historical Cloud Run records do not establish a Vercel deployment.
+Status: the public production demo is deployed. The [deployment guide](docs/engineering/deploy.md) records the exact revision, deployment IDs, checks and remaining limits. The following steps describe configuring another deployment, not unfinished authentication for the published site.
 
-1. Complete Vercel user authentication, then import the GitHub repository. Select the root containing `app/` and `requirements.txt`, using the controller's native FastAPI configuration with Python 3.12 in `sin1`. Preserve `/` for the existing chat and use `/finshield` for the new page.
+1. Authenticate Vercel and link the intended project (or import the GitHub repository). The current site was published by CLI; automatic Git deployments are not connected. Select the root containing `app/` and `requirements.txt`, using native FastAPI with Python 3.12 in `sin1`. Preserve `/` for the existing chat and `/finshield` for the new page.
 2. Set server-side environment variables separately for Preview and Production. Start with `FINSHIELD_MODEL_MODE=offline_fixture`, `FINSHIELD_LIVE_CALLS_ENABLED=false` and `FINSHIELD_MODEL_CALL_CAP=0`; set `MAX_IMAGE_MB=3` on Vercel, retaining the local default of 10. The deployment owner confirms existing cloud resources and credentials; this does not require automatically upgrading to a paid plan.
 3. Configure working Firestore access, the exact HTTPS origin and a reviewer secret before enabling full case operations. Do not substitute memory or SQLite on Vercel for durable online state, or put secrets in frontend files, GitHub or `.env.example`.
 4. After deployment, verify `/`, `/health`, `/finshield` and its static assets, screenshot upload/preview and the `/api/config` size limit, then both cases, session isolation, unauthorized review rejection, CSRF/Origin rejection, retries and restart persistence. Missing credentials must show an explicit unavailable/unconfigured state.

@@ -11,7 +11,7 @@ RepSafe keeps its existing stateless conversation and screenshot checks. FIN-SHI
 
 Session cookies, exact Origin checks, CSRF protection and server-side case grants protect writes. Public case responses expose evidence and review permission, never session/token/key hashes or internal operations. The investigator has four read-only tools and cannot change payment state. Offline fixtures must be labelled deterministic demonstrations; they are not real agentic AI and do not satisfy G1. The feature is disabled by default and the model-call cap is zero.
 
-Implementation and deployment evidence are pending Controller verification. Missing credentials or storage fail closed; an explicitly labelled synthetic preview may remain available without claiming persisted case actions. USD 100 and the historical 25-hour total cap remain constraints with actual usage unresolved.
+The integrated synthetic workflow is deployed on Vercel with real Firestore, keyless production-scoped federation, and 255 passing tests. See the [deployment evidence](deploy.md) for the exact revision, hosted checks and remaining gaps; this is not live Gemini or full G1 acceptance. Missing credentials or storage fail closed; a labelled preview cannot claim persisted actions. USD 100 and the historical 25-hour total cap remain constraints with actual usage unresolved.
 
 ## 1. 部署拓撲與責任
 

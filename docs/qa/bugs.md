@@ -4,6 +4,8 @@
 
 本節是金融模組的新結果；下方舊 BUG-001–010／95 tests 等保留為歷史，不能用來判定本輪完成。
 
+**Controller publication update:** runtime `2d9c92e` is deployed. Full suite 255 passed / 2 emulator skips; hosted offline HTTPS 27 checks passed, including two independent cookie jars and case/replay persistence across a fresh deployment. Native Browser verified hosted high-risk HOLD/report/source drill-down. Private production reviewer access, two independent browser contexts and real Gemini remain unverified. Details: [deployment evidence](../engineering/deploy.md). Existing gaps below are not silently closed by these results.
+
 | ID | Severity / status | Evidence and impact |
 |---|---|---|
 | FS-QA-001 | Medium / Open, intermittent | Controller 真 Firestore write 成功；首次 read 回 lease_not_expired（按設計），後續官方 read 兩次 probe_unavailable；直接 read_phase 與最後包裝官方 main 的執行均 16 checks pass，已產出 read artifact。間歇失敗根因仍未證實，不能宣稱已修復。 |
@@ -13,6 +15,7 @@
 | FS-QA-005 | Evidence limitation / Open | Public CaseRecord 按合約不含 durable model-call counter；live smoke 把 model_calls 標未驗證。Trace 長度可能漏計失敗但已扣額呼叫，不能拿它當總花費或 quota 證明。 |
 | FS-QA-006 | Harness / Workaround verified | Controller 確認 Windows sandbox pytest cache provider 在 100% 後卡住；停用 `-p no:cacheprovider` 正常退出。Quinn 全程採此參數，沒有未清理的 hung pytest；不改 production code。 |
 | FS-QA-007 | P2 / Closed, verified | Controller 僅在 public_case 將 visitor:<session UUID> 投影為 visitor；私人 audit 原 actor 不變。Quinn 實跑新增 HTTP 回歸測試：payment／GET case／report 均無 session UUID，私人 audit 保留原 actor；1 passed、1 既有 warning、exit 0。原缺陷未構成已知授權繞過。 |
+| FS-QA-008 | Deployment configuration / Pending owner choice | Production reviewer secret/hash is not configured. Public visitors cannot approve/cancel; local and separate Firestore reviewer checks passed, but hosted authorized-review acceptance remains pending. Do not publish a shared reviewer key or describe the production review step as completed. |
 
 ### FS-QA-001 reproduction and retained evidence
 

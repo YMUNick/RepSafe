@@ -4,6 +4,15 @@
 
 此節是本輪金融調查模組驗收；下方 9 月對話測試與數字是歷史紀錄，不能當作 FIN-SHIELD 新結果。資料全部 Synthetic、付款全部 Simulated。沒有真實扣款、帳戶凍結或犯罪認定。
 
+### Published checkpoint / 已發布驗證
+
+- Runtime `2d9c92e` is on GitHub main and [Vercel production](https://repsafe-finshield.vercel.app/finshield).
+- Full suite: **255 passed, 2 skipped, 1 existing Starlette/httpx warning**; exit 0 with `-p no:cacheprovider`. The two skips require a Firestore emulator.
+- Real Firestore: separate write/read processes, three synthetic held/approved/interrupted cases, **16 checks passed**; the earlier intermittent failure remains FS-QA-001.
+- Hosted HTTPS: **27 checks passed**. Two independent HTTP sessions, high-risk HOLD and normal PASS, report READY and citation provenance, normal counter-evidence, Origin/CSRF rejection, secure cookie, anonymous/cross-session denial, denied unauthorized review, VIP hold preservation, redacted visitor actor and payment replay. Following a fresh deployment, both case payload hashes stayed identical and old payment keys caused no duplicate audit events. No model calls.
+- Native Browser: hosted risk case, report and source drill-down verified. Authorized reviewer UI was verified locally only; production reviewer credential is unconfigured. Two independent browser contexts and full hosted screenshot boundary tests remain unverified.
+- G1/G2 remain **false/unverified**: real adaptive Gemini and a named human semantic oracle are not replaced by this offline evidence. Full revision/deployment IDs and limitations: [deployment record](../engineering/deploy.md).
+
 ### Evidence levels / 證據層級
 
 - Offline：執行真正的 policy、service、HTTP、引用與 investigator，儲存／模型是明確測試替身；可證明流程，不能證明 Gemini 品質或 durable restart。

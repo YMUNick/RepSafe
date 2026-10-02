@@ -15,7 +15,7 @@ Execution authorization is settled; implementation, tests, cloud availability an
 
 ## 1. 現況與資源帳
 
-10/2 會議已核對的基線為 c12f390、Cloud Run 健康狀態 offline_fixture／fixture。現有 FastAPI、手機頁、文字／截圖與模型介面保留；新交易／KYC／案件／付款控制由團隊平行實作中，完成度及真 AI 驗收待 Controller 核定。本文件不把歷史健康檢查當成 Vercel 現況，也不填造工時、帳單或測試數。
+10/2 基線為 c12f390；六角色平行交付已整合成 `2d9c92e` 並推至 GitHub main。現有 FastAPI、文字／截圖與模型介面保留，新增分析師工作台已在 [Vercel](https://repsafe-finshield.vercel.app/finshield) 以明標 offline fixture 上線。255 tests passed、2 emulator skips；真 Firestore 兩程序 16 checks、線上 HTTP 含重新部署持久化 27 checks passed。私人 production reviewer 尚未配置；真 AI／人工語意與 G0–G3 未驗收。詳見 [部署證據](engineering/deploy.md)，不填造工時、帳單或省時數字。
 
 | 資源 | 已知約束 | G0 須補的證據 |
 |---|---|---|
@@ -47,11 +47,11 @@ Execution authorization is settled; implementation, tests, cloud availability an
 
 | 項目 | 現行要求／待補證據 |
 |---|---|
-| Vercel + 可攜 FastAPI | 已指定目標；實際部署 URL、版本、入口及完整流程由 Controller 驗證後記錄。Cloud Run 僅保留原模組沿革及可攜部署選項 |
-| Firestore | 線上 reviewer session、案件、審核／冪等的必要持久層。未完成憑證與跨程序 smoke 前不得宣稱耐久；記憶體或本地 SQLite 不是 Vercel 替代方案 |
+| Vercel + 可攜 FastAPI | `2d9c92e` 已部署，首頁／工作台／資源 200；Python 3.12、sin1、Hobby。27 項線上 HTTP 通過；不等於真 AI 或完整覆核驗收 |
+| Firestore | 無金鑰 production-only federation 已在線上讀寫驗證；兩程序 16 checks、重新部署兩案 payload／付款重送保持一致。先前間歇無法存取原因未定，QA-001 保留 |
 | 模式與配額 | `FINSHIELD_MODEL_MODE=offline_fixture\|gemini` 獨立於原聊天模式；功能預設關閉、model-call cap 預設 0。offline fixture 可示範證據流程，不能計入 G1 真 AI |
 | 公開預覽與覆核 | 可公開明標 Synthetic／Simulated 模板；viewer 不自動有 review 權。缺 Firestore／憑證時明示不可用，不偽裝操作成功 |
-| GitHub 中英文件 | Sandy 撰寫 README 中英版，各專業文件提供英文摘要及中文細節；發布是否完成以 Controller 的實際結果為準 |
+| GitHub 中英文件 | 中英 README、六角色文件、程式與測試已推 main；團隊設定、秘密及私人資料排除。後續 docs-only 提交記錄實際部署證據 |
 | 驗收真實來源 | 實作版本、實際測試命令／結果、live Gemini trace、Firestore 重啟證據、雲端 UI／API 核對須可對應；未執行項目明列待測 |
 
 ## 2. G0–G3 完成關卡

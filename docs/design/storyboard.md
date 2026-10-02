@@ -2,6 +2,8 @@
 
 ## 2026-10-02 execution update — 30-second FIN-SHIELD segment
 
+錄影入口已上線：[FIN-SHIELD](https://repsafe-finshield.vercel.app/finshield)，程式版本 `2d9c92e`。目前是明標 offline fixture；私人線上 reviewer 尚未配置，最後人工核准鏡頭不得假演成功。真 Gemini 與影片本身未驗收，詳見 [部署紀錄](../engineering/deploy.md)。
+
 本次新模組片段替換下方舊分鏡格⑤的 30 秒位置（1:55–2:25），不在 3 分鐘影片外再增加 30 秒。原格③的截圖上傳、裝置內預覽、讀字確認，以及格④的安全回覆保留；原格⑤內容可作 Q&A 備片。新錄影使用本次實際部署環境，下方歷史稿的 Cloud Run 指稱不代表 Vercel 已通過驗收。
 
 The case workspace is for a platform risk analyst; the earlier seller screenshot stays in the seller assistant. The video must not imply that private chat screenshots automatically became the synthetic case dataset.

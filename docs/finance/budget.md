@@ -16,16 +16,16 @@
 | 已支出 | **未核對**；包含歷史部署、模型測試與儲存，不填 0 |
 | 可用餘額 | **未核對**；須扣已支出、在途呼叫及保留成本，不填 USD 100 |
 | 帳單幣別、匯率、換算日期與來源 | **未核對**；每家帳單按其實際幣別記錄，不能把 USD 100 當 SGD 100；舊文「約 75 USD」不是換算依據 |
-| Vercel 帳戶方案、GCP 抵免額／免費用量 | **未核對**；不預設有付費方案、試用、credits 或足夠免費額度 |
+| Vercel 帳戶方案、GCP 抵免額／免費用量 | Vercel 已確認既有 **Hobby**，沒有升級。Firestore 首個 database 回覆 freeTier=true；其他抵免額、已耗用及足夠免費額度仍未核對 |
 | 線上警示、配額、呼叫限制與關閉入口證據 | **待 Controller／Eddie／Quinn 驗證**；本次只核對公開官方文件，沒有讀取帳單或修改帳戶 |
 | 真實 token、調查輪次、單案費用、回本 | **待實測／待估算**；合成展示或固定回覆不能代替付費用量與付費意願證據 |
 | 累計人時、剩餘人時 | **未核對**；公開 [timesheet.csv](timesheet.csv) 格式與既有記錄保持不動 |
 
 ### A1. Controller 最新狀態（2026-10-02 回報）
 
-- 既有 GCP 專案已確認 **ACTIVE**；已啟用 Firestore、IAM Credentials、STS，並建立第一個 `(default)` Native／Standard 資料庫於新加坡，建立回覆為 `freeTier: true`。另以三個合成案件完成兩程序、16 項持久化檢查；中途曾有未釐清的間歇無法存取，見 QA 紀錄。這不代表 Vercel 存取或真模型已驗證，也不保證超出免費用量後零費用；公開文件不重列專案 ID。
-- Vercel CLI **62** 已安裝，使用者登入仍待完成；**未選擇 Vercel 付費方案，本輪未呼叫模型**。這不是歷史支出為 0 或免費額度足夠的證據。
-- Controller 正在加入原生 FastAPI 的 Vercel **Python 3.12** 部署設定：區域 **sin1**、函式上限 **60 秒**。圖片 API 使用 **base64 JSON**，Controller 已更正 Vercel 環境為原始圖片 `MAX_IMAGE_MB=3`（原先回報 4），以容納編碼膨脹與 JSON 在 **4.5 MB request body** 限制內的額外用量；實際邊界仍須驗證。本機既有 **10 MB 預設**保留，UI 依 `/api/config` 顯示適用限制並保留上傳＋預覽流程。這是進行中的部署工作，尚不表示部署成功。Vercel 區域不等同 Firestore 資料庫位置，函式逾時也不保證取消已送出的模型計費。
+- 既有 GCP 專案已確認 **ACTIVE**；已啟用 Firestore、IAM Credentials、STS，並建立第一個 `(default)` Native／Standard 資料庫於新加坡，建立回覆為 `freeTier: true`。三個合成案件完成兩程序、16 項持久化檢查；Vercel 無金鑰存取另由線上流程驗證。中途曾有未釐清的間歇無法存取，見 QA 紀錄。真模型仍未驗證，也不保證超出免費用量後零費用；公開文件不重列專案 ID。
+- Vercel 登入與兩次正式部署已完成，維持既有 **Hobby**；**未選擇付費方案，本輪未呼叫模型**。27 項線上 HTTP 檢查通過，包含新部署後兩案與重送記錄保留。這不是歷史支出為 0 或免費額度足夠的證據。
+- Vercel 已建置 **Python 3.12** 原生 FastAPI，inspection 確認 **sin1**，函式設定 **60 秒**。圖片 API 使用 **base64 JSON**；線上 `/api/config` 確認原圖 `MAX_IMAGE_MB=3`，為 **4.5 MB request body** 留編碼空間，精確邊界仍待另測。本機 **10 MB 預設**及上傳／預覽保留。Vercel 區域不等同 Firestore 位置，函式逾時也不保證取消已送出的模型計費。
 - Controller 將同步修正 [部署文件](../engineering/deploy.md) 的 100 SGD 舊權威敘述：本次總額以 **USD 100** 為準，歷史幣別僅作紀錄，**尚無已驗證的換算警示門檻**。已支出／可用餘額、實際帳單幣別與匯率仍未核對。
 
 ```text

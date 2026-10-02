@@ -8,12 +8,12 @@ RepSafe 保留賣家貼上對話、截圖讀字及取得回覆草稿的入口。
 
 ## 目前狀態
 
-2026-10-02：已進入平行實作與整合階段；本文件提供可供設定的操作說明，上線驗證待完成。Vercel CLI 已備妥，使用者登入待完成；整合負責人正在加入 Python 3.12、`sin1` 區域的原生 FastAPI 部署設定。Vercel 公開網址待整合負責人提供驗證結果後補上。文件完成不代表部署成功、真 AI 已跑通或 G0–G3 已通過。
+2026-10-02：合成工作流已整合並部署至 Vercel（Python 3.12、新加坡 `sin1`、既有 Hobby 方案）。可直接開啟 [FIN-SHIELD 分析師 Demo](https://repsafe-finshield.vercel.app/finshield)或 [RepSafe 賣家助手](https://repsafe-finshield.vercel.app/)。執行程式版本為 `2d9c92e`，後續文件提交補記部署證據。測試為 **255 通過、2 項因未配置 emulator 跳過**；線上 HTTP 已驗兩案、證據引用、session 隔離、CSRF 與未授權覆核拒絕。完整證據與限制見 [部署說明](docs/engineering/deploy.md)。
 
 - 案例、KYC、政策及付款全部為 Synthetic／Simulated（合成／模擬）；沒有真實轉帳、銀行攔截、帳戶凍結或 AML 通報。
-- FIN-SHIELD 預設關閉，模型呼叫上限預設為 0。公開預覽可以展示合成範本；持久化案件操作與人工覆核需要完整後端設定及相應權限。
+- 程式庫預設關閉 FIN-SHIELD；此公開站已明確啟用合成案件流程，使用真 Firestore 保存資料，模型呼叫上限仍為 0。私人 reviewer 密碼尚未配置；公開訪客不能核准或取消付款。
 - `offline_fixture` 是固定、附來源的離線工作流展示，不是真 Gemini、agentic AI 或 G1 通過證據。
-- 真 Gemini 補查、Firestore 重啟一致性、完整安全測試與 Vercel 實測仍須依 [QA 計畫](docs/qa/test-plan.md)及 [roadmap](docs/roadmap.md)留下本版結果。
+- 真 Firestore 已通過兩程序、16 項持久化檢查。真 Gemini 補查、人工語意評測、完整安全測試與 G0–G3 驗收**尚未完成**，見 [QA 計畫](docs/qa/test-plan.md)及 [roadmap](docs/roadmap.md)。工作流上線不等於 AI 參賽版本已完成。
 - 專案總預算上限為 USD 100；實際已用、剩餘與帳單幣別待核對，不能把總上限當作餘額。工時限制與安排見 [預算](docs/finance/budget.md)及 roadmap。
 
 ## 工作方式
@@ -76,7 +76,7 @@ reviewer 密鑰、Firestore 與雲端憑證僅存伺服器設定，欄位名稱�
 
 ## Vercel 設定與上線驗證
 
-狀態：可依下列步驟準備設定；Vercel 上線驗證待完成。實際入口、憑證欄位及部署結果以整合負責人的 [部署說明](docs/engineering/deploy.md)為準。歷史 Cloud Run 記錄不代表 Vercel 已上線。
+狀態：公開正式 Demo 已上線；[部署說明](docs/engineering/deploy.md)記錄版本、部署識別、驗證結果與限制。下列為其他環境的設定步驟，並非已發布網站仍未登入。本站以 CLI 發布，尚未連接 Git 自動部署。
 
 1. 完成 Vercel 使用者登入後匯入 GitHub 專案，根目錄選包含 `app/` 與 `requirements.txt` 的資料夾，使用整合負責人提供的原生 FastAPI、Python 3.12、`sin1` 設定。`/` 保留舊對話功能，`/finshield` 為新頁面。
 2. 分別設定 Preview 與 Production 的伺服器環境變數，先維持 `FINSHIELD_MODEL_MODE=offline_fixture`、`FINSHIELD_LIVE_CALLS_ENABLED=false`、`FINSHIELD_MODEL_CALL_CAP=0`；Vercel 設定 `MAX_IMAGE_MB=3`，本機預設仍為 10。需要的既有雲端資源及憑證由部署負責人確認，不自動升級付費方案。

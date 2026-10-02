@@ -2,6 +2,8 @@
 
 ## 2026-10-02 execution update — FIN-SHIELD workspace
 
+已發布介面：[Vercel analyst workspace](https://repsafe-finshield.vercel.app/finshield)，runtime `2d9c92e`。Native Browser 已驗線上高風險案、報告與引用定位；兩案及權限／重部署由 HTTP 另驗。私人 production reviewer 尚未配置；本機覆核 UI 通過不等於線上授權已開通。精確結果見 [部署說明](../engineering/deploy.md)。
+
 本節為本次 FIN-SHIELD 實作規格；下方原賣家介面規格與截圖流程保留。FIN-SHIELD 是同一個 RepSafe 產品內供平台風控分析師使用的模組，不是新品牌或真實付款系統。
 
 ### Views and information hierarchy / 視圖與資訊順序

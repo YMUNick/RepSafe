@@ -2,7 +2,7 @@
 
 Updated 2026-10-02 · Sandy · [English README](../../README.md) · [繁體中文 README](../../README.zh-TW.md)
 
-This is a ready-to-rehearse script for the synthetic investigation prototype. Implementation and deployment are being integrated; live verification is pending. Use the offline version until real Gemini and the displayed workflow have evidence for the recorded revision. The video storyboard belongs to Dana: [storyboard](../design/storyboard.md). This document supplies the business narrative and presenter wording, not a claim that the video has been recorded.
+This is a ready-to-rehearse script for the [deployed synthetic investigation prototype](https://repsafe-finshield.vercel.app/finshield), runtime `2d9c92e`. Use the offline version: real Gemini is not yet validated, and private production reviewer credentials are not configured. Hosted HTTP checks passed, but this is not G1/G2 completion. The video storyboard belongs to Dana: [storyboard](../design/storyboard.md). This document supplies the business narrative and presenter wording, not a claim that the video has been recorded.
 
 ## 1. Three sentences
 

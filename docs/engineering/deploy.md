@@ -14,8 +14,13 @@ RepSafe 對話與截圖預覽，新增 `/finshield` 分析師工作台。離線�
 ### Current deployment evidence / 目前證據
 
 - Vercel project: `repsafe-finshield`, existing Hobby team `hongchelai-5239`.
-  Authentication and project linking are complete. Production domain is assigned
-  as `repsafe-finshield.vercel.app`; deployment and HTTP/browser checks are pending.
+  Public [analyst demo](https://repsafe-finshield.vercel.app/finshield) and
+  [seller assistant](https://repsafe-finshield.vercel.app/) are live.
+  Runtime revision: `2d9c92ee4a0d63a96da05386bb05215f0832b6af`, pushed to GitHub main.
+  First deployment: `dpl_EGQ8sLV67rxMzRE1i6QCYAW8dpWo`; fresh, cache-free redeployment:
+  `dpl_GNiJP1jZw4jvjWbbhRhYbKGLVtEd` (current production). Both built Python 3.12;
+  inspection confirms the FastAPI function runs in `sin1`. Later docs-only commits
+  record these observations without changing runtime code. Git auto-deploy is not connected.
 - Existing GCP project: `repsafe-2026` (verified active, independent of LineSleuth).
 - Firestore: first `(default)` database created 2026-10-02 in `asia-southeast1`,
   Native / Standard; the creation response confirms `freeTier: true`. This does
@@ -40,7 +45,7 @@ RepSafe 對話與截圖預覽，新增 `/finshield` 分析師工作台。離線�
 - Current offline suite: **255 passed, 2 skipped, 1 existing warning** (2026-10-02,
   `python -m pytest -q -p no:cacheprovider`). The skips require a local Firestore
   emulator; the warning is the installed Starlette/httpx deprecation. This is a
-  working-tree checkpoint, not yet a deployed-commit guarantee.
+  tested runtime is the published `2d9c92e` revision.
 - Real Firestore probe `fs-20261002-a`: three synthetic cases (held, reviewer
   approved, interrupted investigation), separate write/read processes, **16 checks
   passed**. The official read CLI was rerun successfully after the storage RPC
@@ -53,9 +58,29 @@ RepSafe 對話與截圖預覽，新增 `/finshield` 分析師工作台。離線�
 - Two-case offline smoke and eight-case independent fixture evaluation passed
   their offline checks. They deliberately report `g1_pass=false` and
   `g2_pass=false`: live-model adaptation and human semantic assessment remain open.
-- Vercel authentication and exact team/project trust configuration are complete.
-  Hosted token exchange, deployed URL checks, hosted browser and live Gemini
-  validation remain pending. No live model calls were made.
+- Hosted checks: **27 passed**, using HTTPS requests against the public production
+  alias and two independent cookie jars. Covered screenshot/config defaults,
+  secure HttpOnly Strict cookie, wrong Origin and missing CSRF rejection, risk HOLD,
+  normal PASS, payment replay, cross-session/anonymous denial, offline READY,
+  source/fact provenance, normal counter-evidence, no exposed session UUID,
+  VIP cannot release, and unauthorized review rejection. After the fresh second
+  deployment, both complete public case payloads retained the same hashes;
+  replaying each original payment key did not duplicate audit events or change status.
+  Sessions/tokens stayed only in the live probe process and were not published.
+- Native browser on the hosted site verified case creation, high-risk HOLD,
+  offline report rendering and a citation's exact source/field/version/transaction
+  drill-down. The browser VIP request was initiated; the invariant is independently
+  verified by hosted HTTP. Local authorized-review browser evidence above is separate.
+- `/`, `/health`, `/api/config`, `/finshield`, `/finshield.js` and `/finshield.css`
+  returned HTTP 200 without Vercel login. Deployment-specific preview URLs retain
+  Vercel authentication. The canonical production origin alone is permitted for writes.
+- Keyless Vercel→Google token exchange and real Firestore writes/reads are verified
+  through the hosted flow. No ADC file or service-account key was uploaded.
+- Private production reviewer credentials remain **unconfigured**, pending the
+  owner's access choice. Public visitors cannot approve/cancel; authorized review
+  is verified locally and in the separate Firestore probe, not on this deployment.
+- Live Gemini, human semantic assessment and full G0–G3 acceptance remain open.
+  No live model calls were made; both deployed modules use explicit offline fixtures.
 
 ### Runtime and packaging
 
