@@ -2,6 +2,15 @@
 
 ## 2026-10-04 UX/session storage update
 
+### Published release evidence
+
+- Runtime commit: **`9f7e1ee9bd60da1506c13f8dd6940760778021c7`**, non-force pushed to GitHub main. Vercel production **`dpl_AfyjzzMFub3eqctS9xSoZo8cSfwe`** is Ready at the [canonical demo](https://repsafe-finshield.vercel.app/finshield). Inspection confirms Python3.12, FastAPI40.81MB, runtime region`sin1`; existing plan/settings unchanged. Later docs-only commits record evidence without changing deployed runtime.
+- **33 hosted HTTPS checks passed**, spanning two synthetic cases created on the old runtime and verified after deployment. Business payloads and original payment replay results match, permitting only the additive current permissions metadata. The original cookie is unchanged; resume lists both cases without Set-Cookie, stable derived CSRF works, and legacy CSRF compatibility is verified. No browser credentials or tokens were written to files.
+- Checks also cover public pages/assets/health, offline screenshot limit3MB, anonymous resume without allocation, source provenance, absent reviewer503, incorrect Origin/missing CSRF rejection, cross-session/anonymous case denial and unauthorized approval403. Two independent HTTP cookie jars were used; this is not a claim of two isolated browser profiles.
+- Native Browser restored an existing production session/case, refreshed it successfully, then completed payment check and investigation with **Held for manual review / Report ready**. It displayed **Reviewer unavailable** with disabled authorization controls and showed no console errors in the restore/refresh flow. Authorized production review remains unconfigured; local authorized-review evidence is separate.
+
+**中文：新版已上線；33項跨部署HTTPS檢查通過，舊案件內容／付款重送結果保留，原cookie未被覆寫。線上仍為離線fixture、模型額度0、reviewer未配置；沒有因此開啟付費AI或公開覆核權限。**
+
 This patch preserves the existing offline configuration, exact production origin, session/model caps and reviewer provisioning state. It does not enable paid AI or alter cloud identities.
 
 Pre-publication verification: `python -m pytest -q -p no:cacheprovider --tb=short` — **326 passed, 2 emulator-dependent skips, 1 existing warning**, exit0 in13.03s. Two-case FIN-SHIELD smoke and eight-case fixture evaluation are `offline_verified`, explicitly `g1_pass=false` / `g2_pass=false`. Seller semantic evaluation still has the documented offline misses/false alarms; see the QA ledger. Native browser verified local two-tab continuity, both payment outcomes, citation drill-down, VIP/dismiss invariants, explicit authorized approval, and320/390/1280px layouts using an injected test store—not cloud durability evidence.
