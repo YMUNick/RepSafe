@@ -6,12 +6,12 @@ from fastapi import APIRouter, Depends, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRoute
-from pydantic import Field
+from pydantic import Field, StrictBool
 
-from .auth import SessionAuth
+from .auth import SessionAuth, session_csrf
 from .investigator import answer_offline_vip, answer_vip, make_model_step, make_offline_step, run_investigation
 from .models import Model, ReviewCommand, RunResult, ServiceError
-from .service import CaseService, validate_key
+from .service import CaseService, template_case_id, validate_key
 from .store import FirestoreStore
 
 
@@ -38,6 +38,10 @@ class EmptyRequest(Model):
     pass
 
 
+class SessionRequest(Model):
+    resume_only: StrictBool = False
+
+
 class CreateRequest(Model):
     template_id: Literal['risk-fee', 'normal-invoice']
 
@@ -48,14 +52,15 @@ class LoginRequest(Model):
     secret: str = Field(min_length=1, max_length=200)
 
 
-def public_case(case, scope, mode):
+def public_case(case, scope, mode, reviewer_available):
     public = case.model_dump(mode='json', include={'case_id', 'bundle', 'version', 'payment_status', 'investigation_status',
                                                   'rule_result', 'result', 'events', 'vip_used', 'vip_answer'})
     # Preserve exact actors privately for audit/replay; never expose session IDs.
     for event in public['events']:
         if event['actor_id'].startswith('visitor:'):
             event['actor_id'] = 'visitor'
-    return {**public, 'permissions': {'can_review': scope.can_review}, 'mode': mode}
+    return {**public, 'permissions': {'can_review': scope.can_review,
+                                    'reviewer_available': reviewer_available}, 'mode': mode}
 
 
 def build_router(service, auth, model_step_factory, vip_answerer, config):
@@ -94,27 +99,38 @@ def build_router(service, auth, model_step_factory, vip_answerer, config):
         return lambda: service.reserve_model_call(scope, config.budget_id, config.model_call_cap)
 
     @router.post('/sessions', dependencies=[Depends(guard)])
-    def sessions(body: EmptyRequest, response: Response):
-        cookie, csrf, session = auth.new_session()
-        response.set_cookie('fs_session', cookie, httponly=True, secure=config.allowed_origin.startswith('https://'),
-                            samesite='strict', path='/', max_age=24 * 60 * 60)
-        return {'csrf_token': csrf}
+    def sessions(body: SessionRequest, request: Request, response: Response):
+        cookie = token(request)
+        try:
+            session = auth.session(cookie)
+        except ServiceError as exc:
+            if exc.status_code != 401 or body.resume_only:
+                raise
+            cookie, csrf, session = auth.new_session()
+            response.set_cookie('fs_session', cookie, httponly=True, secure=config.allowed_origin.startswith('https://'),
+                                samesite='strict', path='/', max_age=24 * 60 * 60)
+        else:
+            csrf = session_csrf(cookie)
+        cases = [{'case_id': case_id, 'template_id': template}
+                 for template in ('risk-fee', 'normal-invoice')
+                 if (case_id := template_case_id(session.session_id, template)) in session.case_ids]
+        return {'csrf_token': csrf, 'cases': cases, 'reviewer_available': bool(auth.reviewer_hashes)}
 
     @router.post('/cases', dependencies=[Depends(guard)])
     def create(body: CreateRequest, request: Request):
         session = auth.session(token(request))
         case = service.create(session.session_id, body.template_id, operation_key(request))
-        return public_case(case, current_scope(request, case.case_id), config.model_mode)
+        return public_case(case, current_scope(request, case.case_id), config.model_mode, bool(auth.reviewer_hashes))
 
     @router.get('/cases/{case_id}', dependencies=[Depends(guard)])
     def get_case(case_id: str, request: Request):
         scope = current_scope(request, case_id)
-        return public_case(service.get(scope), scope, config.model_mode)
+        return public_case(service.get(scope), scope, config.model_mode, bool(auth.reviewer_hashes))
 
     @router.post('/cases/{case_id}/payment', dependencies=[Depends(guard)])
     def payment(case_id: str, body: EmptyRequest, request: Request):
         scope = current_scope(request, case_id)
-        return public_case(service.check(scope, operation_key(request)), scope, config.model_mode)
+        return public_case(service.check(scope, operation_key(request)), scope, config.model_mode, bool(auth.reviewer_hashes))
 
     @router.post('/cases/{case_id}/investigation', dependencies=[Depends(guard)])
     def investigate(case_id: str, body: EmptyRequest, request: Request):
@@ -142,7 +158,7 @@ def build_router(service, auth, model_step_factory, vip_answerer, config):
     def review(case_id: str, body: ReviewCommand, request: Request):
         scope = current_scope(request, case_id)
         case = service.review(scope, body, operation_key(request))
-        return public_case(case, current_scope(request, case_id), config.model_mode)
+        return public_case(case, current_scope(request, case_id), config.model_mode, bool(auth.reviewer_hashes))
 
     @router.post('/cases/{case_id}/vip', dependencies=[Depends(guard)])
     def vip(case_id: str, body: EmptyRequest, request: Request):
@@ -162,7 +178,7 @@ def build_router(service, auth, model_step_factory, vip_answerer, config):
     @router.get('/cases/{case_id}/report', dependencies=[Depends(guard)])
     def report(case_id: str, request: Request):
         scope = current_scope(request, case_id)
-        return public_case(service.get(scope), scope, config.model_mode)
+        return public_case(service.get(scope), scope, config.model_mode, bool(auth.reviewer_hashes))
 
     return router
 

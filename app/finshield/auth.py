@@ -14,6 +14,11 @@ def token_hash(token):
     return sha256(token.encode('utf-8')).hexdigest()
 
 
+def session_csrf(token):
+    # Only return this after verifying the high-entropy HttpOnly session cookie.
+    return token_hash('finshield:session-csrf:v1\0' + token)
+
+
 class SessionAuth:
     def __init__(self, store, reviewer_hashes, clock=utcnow, session_cap=100):
         self.store, self.clock = store, clock
@@ -23,7 +28,8 @@ class SessionAuth:
 
     def new_session(self):
         session_id = str(uuid4())
-        token, csrf = session_id + '.' + secrets.token_urlsafe(32), secrets.token_urlsafe(32)
+        token = session_id + '.' + secrets.token_urlsafe(32)
+        csrf = session_csrf(token)
         session = Session(session_id=session_id, token_hash=token_hash(token), csrf_hash=token_hash(csrf),
                           expires_at=self.clock() + timedelta(hours=24))
         key = session_key(session_id)
@@ -46,7 +52,8 @@ class SessionAuth:
 
     def check_csrf(self, token, csrf):
         session = self.session(token)
-        if not csrf or not compare_digest(session.csrf_hash, token_hash(csrf)):
+        if not csrf or not (compare_digest(token_hash(session_csrf(token)), token_hash(csrf))
+                            or compare_digest(session.csrf_hash, token_hash(csrf))):
             raise ServiceError('csrf_forbidden', 403)
         return session
 
@@ -69,6 +76,8 @@ class SessionAuth:
                 raise ServiceError('unauthorized', 401)
             if case_id not in current.case_ids:
                 raise ServiceError('case_not_found', 404)
+            if reviewer_id not in self.reviewer_hashes:
+                raise ServiceError('reviewer_unavailable', 503)
             if current.failed_logins >= 5:
                 raise ServiceError('review_login_locked', 429)
             if not valid_secret:

@@ -1,13 +1,18 @@
 import json
 import re
+import zlib
+from base64 import b64decode, b64encode
 from datetime import datetime, timezone, timedelta
 from hashlib import sha256
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from .dataset import load_bundle
-from .models import AuditEvent, CaseRecord, Operation, ReviewCommand, RunLease, RunResult, Scope, ServiceError, Session
+from .models import AuditEvent, CaseRecord, Citation, Operation, ReviewCommand, RunLease, RunResult, Scope, ServiceError, Session
 from .policy import check_payment
 from .store import session_key
+
+CASE_BYTES = 256 * 1024
+SNAPSHOT_FORMAT = 'case-snapshot-zlib-v1'
 
 
 def utcnow():
@@ -20,6 +25,37 @@ def request_hash(value):
 
 def snapshot(case):
     return case.model_copy(update={'operations': {}})
+
+
+def compact_response(response):
+    # Legacy case snapshots have case_id; VIP claim markers must stay untouched.
+    if 'case_id' not in response:
+        return response
+    raw = json.dumps(response).encode()
+    if len(raw) > CASE_BYTES:
+        raise ServiceError('case_capacity_reached', 409)
+    return {'format': SNAPSHOT_FORMAT, 'data': b64encode(zlib.compress(raw)).decode('ascii')}
+
+
+def replay_response(response):
+    try:
+        if response.get('format') == SNAPSHOT_FORMAT:
+            data = response['data']
+            if not isinstance(data, str) or len(data) > CASE_BYTES:
+                raise ValueError('invalid_snapshot')
+            compressed = b64decode(data, validate=True)
+            inflater = zlib.decompressobj()
+            raw = inflater.decompress(compressed, CASE_BYTES + 1)
+            if len(raw) > CASE_BYTES or not inflater.eof or inflater.unused_data:
+                raise ValueError('invalid_snapshot')
+            response = json.loads(raw)
+        return CaseRecord.model_validate(response)
+    except (KeyError, TypeError, ValueError, RecursionError, zlib.error):
+        raise ServiceError('storage_unavailable', 503) from None
+
+
+def template_case_id(session_id, template_id):
+    return str(uuid5(NAMESPACE_URL, session_id + ':' + template_id))
 
 
 def validate_key(key):
@@ -63,9 +99,29 @@ class CaseService:
     def __init__(self, store, clock=utcnow):
         self.store, self.clock = store, clock
 
-    def _pack(self, case):
+    def _terminal_reserve(self, case):
+        # Bound a final review even with 500 astral Unicode characters and 12
+        # copies of the largest valid citation. Reserve an UNCOMPRESSED response
+        # upper bound, including zlib/base64 overhead: compressibility is not a
+        # safety assumption. Padding covers timestamp/version/key growth.
+        citation_bytes = max((len(json.dumps(e.model_dump(include=set(Citation.model_fields))).encode())
+                              for step in (case.result.trace if case.result else ()) if step.tool_result
+                              for e in step.tool_result.evidence), default=0)
+        terminal = self._event(case, Scope(case.session_id, case.case_id, 'reviewer-a', True),
+                               'approve', '', 'SIMULATED_CANCELLED', self.clock())
+        event_bytes = len(json.dumps(terminal.model_dump(mode='json')).encode()) + 500 * 12 + 12 * (citation_bytes + 2) + 128
+        response_bytes = len(json.dumps(snapshot(case).model_dump(mode='json')).encode()) + event_bytes + 128
+        zlib_bound = response_bytes + response_bytes // 1000 + 64
+        return event_bytes + 4 * ((zlib_bound + 2) // 3) + 1024
+
+    def _pack(self, case, *, reserve_terminal=True):
         doc = case.model_dump(mode='json')
-        if len(case.operations) > 32 or len(case.events) > 64 or len(json.dumps(doc).encode()) > 256 * 1024:
+        for operation in doc['operations'].values():
+            operation['response'] = compact_response(operation['response'])
+        held = reserve_terminal and case.payment_status == 'HOLD_PENDING_REVIEW'
+        reserve_bytes = self._terminal_reserve(case) if held else 0
+        if (len(case.operations) > 32 - int(held) or len(case.events) > 64 - int(held)
+                or len(json.dumps(doc).encode()) + reserve_bytes > CASE_BYTES):
             raise ServiceError('case_capacity_reached', 409)
         return doc
 
@@ -80,7 +136,7 @@ class CaseService:
         validate_key(key)
         if template_id not in ('risk-fee', 'normal-invoice'):
             raise ServiceError('unknown_template', 422)
-        case_id = str(uuid5(NAMESPACE_URL, session_id + ':' + template_id))
+        case_id = template_case_id(session_id, template_id)
         sk, ck = session_key(session_id), 'case-' + case_id
         now = self.clock()
         opkey = 'create:' + key
@@ -117,14 +173,15 @@ class CaseService:
                 if case.operations[opkey].request_hash != digest:
                     raise ServiceError('idempotency_conflict', 409)
                 return {ck: docs[ck]}
+            original = case
             case = transform(self._recover(case, now), now)
             if opkey:
                 operation = Operation(request_hash=digest, response=snapshot(case).model_dump(mode='json'))
                 case = case.model_copy(update={'operations': {**case.operations, opkey: operation}})
-            return {ck: self._pack(case)}
+            return {ck: self._pack(case, reserve_terminal=case != original)}
         writes = self.store.atomic((sk, ck), reduce)
         case = CaseRecord.model_validate(writes[ck])
-        return CaseRecord.model_validate(case.operations[opkey].response) if opkey else snapshot(case)
+        return replay_response(case.operations[opkey].response) if opkey else snapshot(case)
 
     def get(self, scope):
         return self._change(scope, lambda case, now: case)

@@ -1,5 +1,15 @@
 # Bug 清單（交給 Eddie）
 
+## UX hardening — 2026-10-04
+
+Scope: session continuity, bounded waits, readable evidence, mobile first action, explicit reviewer configuration state, and bounded review storage. This is not a live-model accuracy acceptance run.
+
+- Seller regression:15 executable frontend tests pass, including navigation preserving draft, config timeout, upload timeout during fetch/body, cancel/remove, stale file-read/success responses and rejected files preserving preview. Screenshot progress/error remains visible after switching to text. Native browser: whitespace/max5000 validation, prompt injection sample,390/320px widths, no console errors in those flows.
+- Integrated local suite: **326 passed, 2 emulator-dependent skips**, 1 existing Starlette/httpx warning (13.03s, exit0). Backend recovery coverage includes resume without quota/cookie mutation, old/new CSRF, absent/partial reviewer config, legacy replay migration, >7 keep-hold reviews, bounded corrupt snapshot decoding and reserved terminal review capacity. Final-review regressions additionally cover existing-case switching under503/timeouts: the selected ID is retained, Refresh targets that same case, and a failed or mismatched response cannot clear uncertainty.
+- Native browser with actual FastAPI router and explicit MemoryStore test harness: riskHOLD/READY, normalPASS, reload restores case, two same-session tabs remain usable, citation inspection, VIP/dismiss keepHOLD, missing reason blocks submission, explicit authorized approval succeeds.390×844 opening CTA nowy559/bottom603 (previousy937);320 and1280 widths have no horizontal overflow. Same-session tabs are not proof of two independent browser contexts; FS-QA-003 remains scoped accordingly. Hosted verification is recorded separately in deploy.md.
+- Offline seller evaluation rerun: scored set still has four missed scams (`P04/P05/P06/O05`) and two false alarms (`N04/N05`); injection baseline3/3, reply leaks0. Edge set E01–E10 meets expectations; E11/E13 missed and E12 lacks the injection tag. These match the documented offline baseline in the test plan, not new UI regressions. Evaluation exits1 for unmet semantic thresholds. Do not label all edge cases passed or quote these as Gemini accuracy. No model/prompt changes or live calls in this usability patch.
+- Production reviewer setup and real Gemini remain separate open gates. The USD100 total cap and durable session/model caps are not reset by this patch.
+
 ## FIN-SHIELD QA ledger — 2026-10-02
 
 本節是金融模組的新結果；下方舊 BUG-001–010／95 tests 等保留為歷史，不能用來判定本輪完成。

@@ -1,5 +1,18 @@
 # Deployment guide / 部署說明
 
+## 2026-10-04 UX/session storage update
+
+This patch preserves the existing offline configuration, exact production origin, session/model caps and reviewer provisioning state. It does not enable paid AI or alter cloud identities.
+
+Pre-publication verification: `python -m pytest -q -p no:cacheprovider --tb=short` — **326 passed, 2 emulator-dependent skips, 1 existing warning**, exit0 in13.03s. Two-case FIN-SHIELD smoke and eight-case fixture evaluation are `offline_verified`, explicitly `g1_pass=false` / `g2_pass=false`. Seller semantic evaluation still has the documented offline misses/false alarms; see the QA ledger. Native browser verified local two-tab continuity, both payment outcomes, citation drill-down, VIP/dismiss invariants, explicit authorized approval, and320/390/1280px layouts using an injected test store—not cloud durability evidence.
+
+- Valid sessions resume without replacement, expiry extension or quota use. Fresh page startup uses resume-only; a new session requires explicit case opening. Existing tabs' legacy CSRF values remain valid within the original session lifetime.
+- Stored case operation snapshots migrate losslessly to bounded zlib envelopes on writes. New code reads old and new formats. **Rollback must keep both the compatible replay decoder and the derived/legacy CSRF verifier, or use an explicit reverse migration/client recovery plan**: pre-update code cannot read newly compacted snapshots and rejects the derived CSRF returned when resuming legacy sessions. Do not redeploy the old runtime blindly after migration.
+- The same 256 KiB / 32 operation / 64 audit-event bounds remain. New nonterminal HOLD mutations reserve a final authorized approve/cancel slot and bounded bytes. Legacy records already at 32 operations or 64 events cannot receive another event while preserving the original bounds/history; they require explicit owner-led recovery. The common legacy byte-bloat issue can compact without deleting evidence.
+- Reviewer not configured is an explicit unavailable state, not a wrong password. No shared reviewer key is published. Successful authorized review in the local test harness is not hosted reviewer acceptance.
+
+此版維持離線／零模型額度及未配置線上 reviewer 的限制。有效 session 接續原案；舊快照可逐步無損壓縮。若需回退部署，必須保留新快照解碼與 derived／legacy CSRF 相容性，不能直接換回舊程式。
+
 ## FIN-SHIELD on Vercel — 2026-10-02
 
 The owner authorized parallel implementation, bilingual GitHub documentation and

@@ -4,6 +4,8 @@
 
 ## 本次摘要／Executive summary
 
+2026-10-04 usability patch: no new budget, paid-plan upgrade, model-call allowance, reviewer provisioning or cloud resources. Tests use offline fixtures; hosted verification writes only bounded synthetic cases to the existing Firestore database. That can consume ordinary hosting/storage usage, so actual expenditure remains unverified rather than assumed zero. Session resumption avoids consuming new-session quota on every reload; the durable100-session ceiling is not reset.
+
 **中文：USD 100 是整個 RepSafe／FIN-SHIELD 專案累計總上限，包含先前支出與此次 Vercel、GCP、Vertex AI、Firestore，並非新增預算或目前餘額。**已支出、可用餘額、帳單幣別與匯率均未核對；不預填實際費用、時薪或工時。50%／90%／100% 是規劃中的警示門檻，警示不是硬性扣款上限。新增模型呼叫總額度預設為 0；付費模型入口須先具備持久化全域限制。原 25 小時總限與核心估算 24–36 人時存在衝突；使用者授權實作，但未指定新的數字工時上限。
 
 **English: USD 100 is the total project ceiling**, including prior spending and all Vercel, existing GCP, Vertex AI, and Firestore costs; it is not a fresh allowance or a verified remaining balance. Actual spend, exchange rates, and hours remain unverified. Percentage alerts are notifications, not a hard spending cap. The default model-call allowance is zero; live AI needs a durable global limit that includes retries. No paid hosting upgrade is assumed. Implementation is authorized, but no replacement numeric hours cap was specified: the previous 25-hour total conflicts with the 24–36 person-hour core estimate. An `offline_fixture` demonstrates synthetic workflow only and cannot establish real Gemini usage or G1 completion.

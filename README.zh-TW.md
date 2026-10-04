@@ -8,7 +8,9 @@ RepSafe 保留賣家貼上對話、截圖讀字及取得回覆草稿的入口。
 
 ## 目前狀態
 
-2026-10-02：合成工作流已整合並部署至 Vercel（Python 3.12、新加坡 `sin1`、既有 Hobby 方案）。可直接開啟 [FIN-SHIELD 分析師 Demo](https://repsafe-finshield.vercel.app/finshield)或 [RepSafe 賣家助手](https://repsafe-finshield.vercel.app/)。執行程式版本為 `2d9c92e`，後續文件提交補記部署證據。測試為 **255 通過、2 項因未配置 emulator 跳過**；線上 HTTP 已驗兩案、證據引用、session 隔離、CSRF 與未授權覆核拒絕。完整證據與限制見 [部署說明](docs/engineering/deploy.md)。
+2026-10-04 易用性更新：重新整理、多分頁可接續案件；請求有等待上限與復原提示，覆核未配置不再當成密碼錯誤。分析師手機首屏可直接開案，加入三步流程與易讀 SGD 金額，原始證據仍可展開。截圖逾時保留預覽／草稿，舊讀取結果不會覆寫新截圖；重複維持 HOLD 後仍為最後授權決策保留儲存容量。測試及限制見 [QA 紀錄](docs/qa/bugs.md)，發布版本見[部署說明](docs/engineering/deploy.md)。此更新**不會開啟真 AI 或公開覆核權限**。
+
+首次部署（2026-10-02）：合成工作流上線Vercel（Python3.12、新加坡`sin1`、既有Hobby）。可開啟[FIN-SHIELD分析師Demo](https://repsafe-finshield.vercel.app/finshield)或[RepSafe賣家助手](https://repsafe-finshield.vercel.app/)。初版程式`2d9c92e`有255測試通過、2項emulator跳過；線上HTTP已驗兩案、引用、session隔離、CSRF及未授權覆核拒絕。新版發布證據另記於部署說明。
 
 - 案例、KYC、政策及付款全部為 Synthetic／Simulated（合成／模擬）；沒有真實轉帳、銀行攔截、帳戶凍結或 AML 通報。
 - 程式庫預設關閉 FIN-SHIELD；此公開站已明確啟用合成案件流程，使用真 Firestore 保存資料，模型呼叫上限仍為 0。私人 reviewer 密碼尚未配置；公開訪客不能核准或取消付款。

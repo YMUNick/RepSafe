@@ -1,5 +1,11 @@
 # 分鏡稿：RepSafe 3 分鐘影片
 
+## 2026-10-04 usability recording notes
+
+Use the updated compact case selector and next-action prompt. Reload can restore the current owned case; it is not a reset/new investigation. For a fresh recording, use an untouched synthetic case or clearly caption a previously opened case. Show formatted SGD amounts; use raw provenance details only when explaining evidence. If reviewer setup is unavailable, show that state instead of typing a demo password or staging an approval. Timeouts require checking the latest server state; do not edit them into a fake success.
+
+新版手機介面縮短開案路徑，保留 Synthetic／Simulated 標示。重新整理會接續同案，不等於重新調查；需新錄影時使用未操作的合成案，或明示預先開案。人工覆核未配置仍不能假演成功。
+
 ## 2026-10-02 execution update — 30-second FIN-SHIELD segment
 
 錄影入口已上線：[FIN-SHIELD](https://repsafe-finshield.vercel.app/finshield)，程式版本 `2d9c92e`。目前是明標 offline fixture；私人線上 reviewer 尚未配置，最後人工核准鏡頭不得假演成功。真 Gemini 與影片本身未驗收，詳見 [部署紀錄](../engineering/deploy.md)。

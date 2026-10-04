@@ -96,10 +96,10 @@ LLM 只有四個 READ 工具，不持有付款或 review 寫入介面；VIP 追�
 ## 5. Session、覆核授權與公開回應
 
 - Session cookie `fs_session` 採 HttpOnly、Secure、SameSite=Strict、Path=/；服務端只保存 token hash，session 有效期 24h。知道 session ID 或 case ID 不代表有權讀寫。
-- Session bootstrap 驗精確 Origin；後續寫入還驗 cookie、JSON Content-Type、`X-CSRF-Token`。不開任意 CORS。HTTP 例外僅限明確的 loopback＋emulator 開發設定。
+- Session bootstrap 驗精確 Origin；後續寫入還驗 cookie、JSON Content-Type、`X-CSRF-Token`。不開任意 CORS。HTTP 例外僅限明確的 loopback＋emulator 開發設定。2026-10-04：有效 cookie 重用原 session，不輪替 cookie、不延長24h期限；CSRF 由已驗證的高熵 cookie 加 domain separator 雜湊導出，亦接受原先保存的 CSRF hash 以相容已開啟的分頁。
 - Reviewer secret 由操作者另行持有；伺服器核對 hash，再對此 session 已擁有的此案發 15 分鐘 grant。無公開預設 reviewer／secret，grant 不自動涵蓋以後的新案，每次 decision 重讀授權與版本。
 - UI 的 `permissions.can_review` 是伺服器回傳的顯示資訊，不是可自行提交的授權憑證。不能信任 body 中的 role／actor，未知欄位拒絕。
-- 登入失敗每 session 上限 5 次；secret 不放 URL、靜態檔、localStorage 或 logs。登入後清除表單秘密，422 等錯誤不得回顯 secret。
+- 登入失敗每 session 上限 5 次；secret 不放 URL、靜態檔、localStorage 或 logs。登入後清除表單秘密，422 等錯誤不得回顯 secret。未配置的 reviewer 回503 `reviewer_unavailable`，不消耗密碼失敗次數；仍先驗 session、CSRF及同案存取權。
 - 公開 CaseRecord 必含 `case_id`、`version`、`payment_status`、`investigation_status`、`bundle`、`rule_result`、`result`、`events`，以及 `permissions.can_review`、`mode`；不含 session 資訊、token／key hashes、`operations`。
 - Findings 巢狀於 `result.report`。來源用 `bundle.sources` 及 `result.trace` 的實際 evidence 定位，前端不猜未回傳片段；無效模型輸出不得直接渲染。工具 trace 不是模型內部推理。
 
@@ -109,7 +109,7 @@ LLM 只有四個 READ 工具，不持有付款或 review 寫入介面；VIP 追�
 
 | Method + 相對路徑 | Request → response |
 |---|---|
-| POST `/sessions` | `{}` → `{csrf_token}`，同時設 session cookie；bootstrap 已驗 Origin |
+| POST `/sessions` | `{resume_only?: boolean}` → `{csrf_token, cases: [{case_id, template_id}], reviewer_available}`；有效 cookie 只恢復 session，不再設 cookie。無效／到期 cookie 且 resume_only=true 回401，不建立 session／扣配額；預設false才可建立新session。始終驗精確Origin |
 | POST `/cases` | `{template_id: 'risk-fee' \| 'normal-invoice'}` + Idempotency-Key → public CaseRecord |
 | GET `/cases/{id}` | 驗證 ownership → public CaseRecord；可回復已過期調查 lease |
 | POST `/cases/{id}/payment` | `{}` + Idempotency-Key → public CaseRecord，含已落庫規則結果 |
@@ -130,6 +130,8 @@ Firestore 保存 session、完整 bundle、案件版本／雙狀態、規則結�
 Firestore 讀取 timeout 3s、retry=None，transaction max_attempts=3；這些是工程計畫邊界，不保證固定端到端耗時。提交 timeout 若結果不確定，以原 key 查回，不換 key 猜測重送。儲存失敗不得 fallback 成功、刪 audit 或重新建案來繞過限制。
 
 每案 operations 最多 32、audit 最多 64，JSON document 最多 256 KiB；超限回 409 `case_capacity_reached`。儲存的冪等 response 不再包含 operations 本身，避免遞迴；對外公開投影完全移除 operations。
+
+2026-10-04：回應快照使用版本化壓縮格式，解壓上限256KiB；旧未壓縮快照仍可精確重播，寫入時可逐步轉換而不丟失事件／hash。HOLD案件在一般操作中保留最終approve/cancel所需operation、audit與bytes容量；不可藉由重複keep_hold或no-op付款消耗最後的解決空間。硬上限不提高，session建立配額也不每日重置。`permissions.reviewer_available`僅是配置可用性，`can_review`才表示目前同案grant，兩者都不是客戶端可提交的授權。
 
 調查使用獨立 HTTP request，在 request 存活期間等待完成；不用 response 後的 memory BackgroundTasks。持久化 lease 過期後於下次存取恢復為 INCOMPLETE，保留 HOLD／audit；晚到模型結果須核對 run_id，不能覆寫新狀態。原對話 warmup 設計不因本模組任意重寫。
 

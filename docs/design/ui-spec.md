@@ -1,5 +1,12 @@
 # UI 規格：RepSafe（MVP）
 
+## 2026-10-04 approved usability hardening
+
+- Keep the warm white, coral and teal palette. Seller content widens to a readable 640px on desktop; small-screen controls wrap, target sizes are at least44px, supporting text at least12px. The FIN-SHIELD link is a separate analyst navigation card, not a sample button.
+- Config loading is bounded to10s with visible fallback: “Some demo options could not load. You can still check pasted text; reload to retry screenshot settings.” No automatic retry or silent missing-feature state.
+- Screenshot extraction is bounded to30s, including response parsing. On timeout keep local preview and draft; say “Reading the screenshot took too long. Your preview is still here. Try again or paste the text.” Removing/replacing the screenshot cancels its pending request and ignores stale responses; no claim that cancellation reverses server work.
+- Analyst reload resumes the existing unexpired cookie session without allocating quota or rotating CSRF. Case identity may appear in the URL; credentials never go into browser storage. Empty visits do not allocate sessions. Details of bounded review capacity and verified results are recorded in QA/deployment notes.
+
 ## 2026-10-02 execution update — FIN-SHIELD workspace
 
 已發布介面：[Vercel analyst workspace](https://repsafe-finshield.vercel.app/finshield)，runtime `2d9c92e`。Native Browser 已驗線上高風險案、報告與引用定位；兩案及權限／重部署由 HTTP 另驗。私人 production reviewer 尚未配置；本機覆核 UI 通過不等於線上授權已開通。精確結果見 [部署說明](../engineering/deploy.md)。
@@ -56,7 +63,7 @@ Persistent disclosure: **Synthetic data · Simulated payments** / `No real funds
 7. Review requires an action, a trimmed non-empty reason, and explicit confirmation. **Approve held payment** and **Cancel simulated payment** are distinct from **Dismiss alert — keep payment held**, **Keep on hold**, and **Escalate for review**. The submitted command includes the displayed `expected_version` and the inspected citation, if any. Form edits or a new server snapshot clear confirmation. A conflict refreshes the case and requires a new confirmation.
 8. **Decision trail** displays server audit events. **Download JSON report** retrieves the authorized report endpoint; it does not synthesize an export from assumed findings.
 
-All untrusted content uses `textContent`. Requests use same-origin credentials, JSON, and the session CSRF token. A request path and unchanged body retain one idempotency key across network retries within the page. Reload starts a new page/session workflow; the client does not persist credentials. Duplicate buttons are disabled while requests are pending. A replayed older version cannot overwrite a newer displayed version.
+All untrusted content uses `textContent`. Requests use same-origin credentials, JSON, and the session CSRF token. A request path and unchanged body retain one idempotency key across network retries within the page. Reload resumes an unexpired server session and restores an owned case; credentials are not stored by JavaScript. Duplicate buttons are disabled while requests are pending. A replayed older version cannot overwrite a newer displayed version.
 
 ### Screenshot hosting constraint / 截圖部署限制
 

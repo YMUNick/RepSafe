@@ -15,6 +15,8 @@ Execution authorization is settled; implementation, tests, cloud availability an
 
 ## 1. 現況與資源帳
 
+10/4易用性修正：本機整合326測試通過／2emulator跳過；已驗session接續、多分頁、逾時復原、reviewer未配置、儲存容量保留及手機／桌面版面。中英README／UI規格／分鏡／架構已同步；最新GitHub／Vercel發布證據見[部署紀錄](engineering/deploy.md)。舊離線語意評測的漏判／誤判仍在，不能把回歸測試當成真AI驗收。無新增預算、模型額度或reviewer設定。
+
 10/2 基線為 c12f390；六角色平行交付已整合成 `2d9c92e` 並推至 GitHub main。現有 FastAPI、文字／截圖與模型介面保留，新增分析師工作台已在 [Vercel](https://repsafe-finshield.vercel.app/finshield) 以明標 offline fixture 上線。255 tests passed、2 emulator skips；真 Firestore 兩程序 16 checks、線上 HTTP 含重新部署持久化 27 checks passed。私人 production reviewer 尚未配置；真 AI／人工語意與 G0–G3 未驗收。詳見 [部署證據](engineering/deploy.md)，不填造工時、帳單或省時數字。
 
 | 資源 | 已知約束 | G0 須補的證據 |
